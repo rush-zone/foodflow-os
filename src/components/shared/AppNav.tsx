@@ -11,6 +11,7 @@ const routes = [
   { href: "/estoque",   label: "Estoque",  icon: "📦" },
   { href: "/analytics", label: "BI",       icon: "📊" },
   { href: "/crm",       label: "CRM",      icon: "💬" },
+  { href: "/multiunit", label: "Rede",     icon: "🏢" },
 ];
 
 export default function AppNav() {
