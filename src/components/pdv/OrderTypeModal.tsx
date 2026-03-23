@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { OrderType, FlowPlatform, FlowPayment } from "@/store/useFlowStore";
+import { useCRMStore } from "@/store/useCRMStore";
 
 interface OrderTypeModalProps {
   onConfirm: (data: {
@@ -26,20 +27,42 @@ const platforms: { id: FlowPlatform; label: string; color: string }[] = [
 ];
 
 const payments: { id: FlowPayment; label: string; icon: string }[] = [
-  { id: "pix",  label: "PIX",     icon: "⚡" },
-  { id: "card", label: "Cartão",  icon: "💳" },
-  { id: "cash", label: "Dinheiro",icon: "💵" },
+  { id: "pix",  label: "PIX",      icon: "⚡" },
+  { id: "card", label: "Cartão",   icon: "💳" },
+  { id: "cash", label: "Dinheiro", icon: "💵" },
 ];
 
 export default function OrderTypeModal({ onConfirm, onClose }: OrderTypeModalProps) {
-  const [type, setType] = useState<OrderType>("local");
-  const [platform, setPlatform] = useState<FlowPlatform>("proprio");
-  const [payment, setPayment] = useState<FlowPayment>("pix");
-  const [customer, setCustomer] = useState("");
-  const [table, setTable] = useState("");
-  const [phone, setPhone] = useState("");
-  const [address, setAddress] = useState("");
+  const crmCustomers = useCRMStore((s) => s.customers);
+
+  const [type, setType]               = useState<OrderType>("local");
+  const [platform, setPlatform]       = useState<FlowPlatform>("proprio");
+  const [payment, setPayment]         = useState<FlowPayment>("pix");
+  const [customer, setCustomer]       = useState("");
+  const [table, setTable]             = useState("");
+  const [phone, setPhone]             = useState("");
+  const [address, setAddress]         = useState("");
   const [neighborhood, setNeighborhood] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  const suggestions = useMemo(() => {
+    if (customer.trim().length < 2) return [];
+    return crmCustomers.filter((c) =>
+      c.name.toLowerCase().includes(customer.toLowerCase()) ||
+      c.phone.includes(customer)
+    ).slice(0, 5);
+  }, [customer, crmCustomers]);
+
+  function selectCustomer(c: typeof crmCustomers[0]) {
+    setCustomer(c.name);
+    setPhone(c.phone);
+    // Use last order address if available
+    const lastDelivery = c.orders[0];
+    if (lastDelivery && c.favoriteItems.length > 0) {
+      // address not stored in CRM mock but phone/name prefilled
+    }
+    setShowSuggestions(false);
+  }
 
   function handleConfirm() {
     const name = type === "local"
@@ -52,8 +75,8 @@ export default function OrderTypeModal({ onConfirm, onClose }: OrderTypeModalPro
       paymentMethod: payment,
       customer: name,
       table: type === "local" ? (table ? `Mesa ${table}` : undefined) : undefined,
-      phone: phone.trim() || undefined,
-      address: address.trim() || undefined,
+      phone:        phone.trim()        || undefined,
+      address:      address.trim()      || undefined,
       neighborhood: neighborhood.trim() || undefined,
     });
   }
@@ -67,7 +90,7 @@ export default function OrderTypeModal({ onConfirm, onClose }: OrderTypeModalPro
           <button onClick={onClose} className="text-neutral-500 hover:text-neutral-300 transition-colors">✕</button>
         </div>
 
-        <div className="px-6 py-5 space-y-5">
+        <div className="px-6 py-5 space-y-5 max-h-[75vh] overflow-y-auto scrollbar-thin">
           {/* Order type */}
           <div>
             <p className="text-xs text-neutral-500 mb-2 font-medium">Tipo de pedido</p>
@@ -93,7 +116,7 @@ export default function OrderTypeModal({ onConfirm, onClose }: OrderTypeModalPro
             </div>
           </div>
 
-          {/* Fields by type */}
+          {/* Local: table */}
           {type === "local" && (
             <div>
               <p className="text-xs text-neutral-500 mb-2 font-medium">Mesa (opcional)</p>
@@ -107,18 +130,52 @@ export default function OrderTypeModal({ onConfirm, onClose }: OrderTypeModalPro
             </div>
           )}
 
+          {/* Delivery / Takeaway: customer search */}
           {(type === "delivery" || type === "takeaway") && (
             <div className="space-y-3">
-              <div>
-                <p className="text-xs text-neutral-500 mb-2 font-medium">Nome do cliente</p>
-                <input
-                  type="text"
-                  placeholder="Nome completo"
-                  value={customer}
-                  onChange={(e) => setCustomer(e.target.value)}
-                  className="w-full bg-neutral-700 border border-neutral-600 rounded-xl px-4 py-2.5 text-sm text-neutral-100 placeholder-neutral-500 outline-none focus:border-brand-primary/60 transition-colors"
-                />
+              {/* Customer search */}
+              <div className="relative">
+                <p className="text-xs text-neutral-500 mb-2 font-medium">
+                  Buscar cliente
+                  <span className="ml-1 text-neutral-600">(ou digite novo)</span>
+                </p>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500 text-sm">🔍</span>
+                  <input
+                    type="text"
+                    placeholder="Nome ou telefone..."
+                    value={customer}
+                    onChange={(e) => { setCustomer(e.target.value); setShowSuggestions(true); }}
+                    onFocus={() => setShowSuggestions(true)}
+                    className="w-full bg-neutral-700 border border-neutral-600 rounded-xl pl-9 pr-4 py-2.5 text-sm text-neutral-100 placeholder-neutral-500 outline-none focus:border-brand-primary/60 transition-colors"
+                  />
+                </div>
+
+                {/* Autocomplete dropdown */}
+                {showSuggestions && suggestions.length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-neutral-700 border border-neutral-600 rounded-xl overflow-hidden shadow-lg">
+                    {suggestions.map((c) => (
+                      <button
+                        key={c.id}
+                        onMouseDown={() => selectCustomer(c)}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-neutral-600 transition-colors text-left"
+                      >
+                        <div className="w-8 h-8 rounded-full bg-neutral-600 flex items-center justify-center text-xs font-bold text-neutral-300 shrink-0">
+                          {c.avatar}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-neutral-100">{c.name}</p>
+                          <p className="text-xs text-neutral-500">{c.phone} · {c.totalOrders} pedidos</p>
+                        </div>
+                        {c.tags.includes("vip") && (
+                          <span className="ml-auto text-xs text-yellow-400 shrink-0">💎 VIP</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
+
               <div>
                 <p className="text-xs text-neutral-500 mb-2 font-medium">Telefone</p>
                 <input
@@ -129,6 +186,7 @@ export default function OrderTypeModal({ onConfirm, onClose }: OrderTypeModalPro
                   className="w-full bg-neutral-700 border border-neutral-600 rounded-xl px-4 py-2.5 text-sm text-neutral-100 placeholder-neutral-500 outline-none focus:border-brand-primary/60 transition-colors"
                 />
               </div>
+
               {type === "delivery" && (
                 <>
                   <div>
@@ -195,6 +253,11 @@ export default function OrderTypeModal({ onConfirm, onClose }: OrderTypeModalPro
                 </button>
               ))}
             </div>
+            {payment !== "cash" && (
+              <p className="text-xs text-neutral-600 mt-2">
+                ⚡ O pedido só vai para a cozinha após confirmação do pagamento
+              </p>
+            )}
           </div>
         </div>
 
@@ -208,9 +271,9 @@ export default function OrderTypeModal({ onConfirm, onClose }: OrderTypeModalPro
           </button>
           <button
             onClick={handleConfirm}
-            className="flex-1 py-2.5 rounded-xl text-sm font-bold bg-brand-primary hover:bg-brand-secondary text-white transition-colors shadow-lg"
+            className="flex-1 py-2.5 rounded-xl text-sm font-bold bg-green-600 hover:bg-green-500 text-white transition-colors shadow-lg"
           >
-            Enviar para Cozinha 🍳
+            {payment === "cash" ? "Receber & Confirmar 💵" : "Ir para Pagamento →"}
           </button>
         </div>
       </div>

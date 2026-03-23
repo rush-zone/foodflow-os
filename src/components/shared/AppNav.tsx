@@ -18,21 +18,32 @@ export default function AppNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex gap-2 bg-neutral-800/90 backdrop-blur border border-neutral-700 rounded-2xl px-3 py-2 shadow-card">
+    <nav className="flex items-center gap-1 px-4 border-b border-neutral-800 bg-neutral-900 shrink-0">
+      {/* Logo */}
+      <div className="flex items-center gap-2 pr-4 border-r border-neutral-800 mr-2 py-2">
+        <div className="w-7 h-7 bg-brand-primary rounded-lg flex items-center justify-center text-white font-bold text-xs">
+          FF
+        </div>
+        <span className="text-sm font-bold text-white hidden xl:block">FoodFlow</span>
+      </div>
+
       {routes.map((route) => {
         const active = pathname === route.href;
         return (
           <Link
             key={route.href}
             href={route.href}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium transition-all relative ${
               active
-                ? "bg-brand-primary text-white shadow-lg"
-                : "text-neutral-400 hover:text-neutral-200 hover:bg-neutral-700"
+                ? "text-white"
+                : "text-neutral-500 hover:text-neutral-200"
             }`}
           >
-            <span>{route.icon}</span>
-            <span>{route.label}</span>
+            <span className="text-base">{route.icon}</span>
+            <span className="hidden sm:block">{route.label}</span>
+            {active && (
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-primary rounded-full" />
+            )}
           </Link>
         );
       })}
