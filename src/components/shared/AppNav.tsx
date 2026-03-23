@@ -10,6 +10,7 @@ const routes = [
   { href: "/hub",       label: "Pedidos",  icon: "📋" },
   { href: "/estoque",   label: "Estoque",  icon: "📦" },
   { href: "/analytics", label: "BI",       icon: "📊" },
+  { href: "/crm",       label: "CRM",      icon: "💬" },
 ];
 
 export default function AppNav() {
