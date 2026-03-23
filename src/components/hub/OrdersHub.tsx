@@ -1,12 +1,29 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useOrdersHubStore, HubOrderStatus, HubOrderType } from "@/store/useOrdersHubStore";
+import { useOrdersHubStore, HubOrderStatus, HubOrderType, HubPlatform } from "@/store/useOrdersHubStore";
 import HubStatusBadge from "./HubStatusBadge";
 
 const typeIcon: Record<HubOrderType, string> = {
   local: "🪑", delivery: "🏍️", takeaway: "🥡",
 };
+
+const platformConfig: Record<HubPlatform, { label: string; color: string; bg: string }> = {
+  proprio:  { label: "Próprio",   color: "text-brand-primary", bg: "bg-brand-primary/10 border-brand-primary/30" },
+  ifood:    { label: "iFood",     color: "text-red-400",        bg: "bg-red-400/10 border-red-400/30" },
+  rappi:    { label: "Rappi",     color: "text-orange-400",     bg: "bg-orange-400/10 border-orange-400/30" },
+  anota_ai: { label: "Anota AI",  color: "text-blue-400",       bg: "bg-blue-400/10 border-blue-400/30" },
+  whatsapp: { label: "WhatsApp",  color: "text-green-400",      bg: "bg-green-400/10 border-green-400/30" },
+};
+
+function PlatformBadge({ platform }: { platform: HubPlatform }) {
+  const { label, color, bg } = platformConfig[platform];
+  return (
+    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${color} ${bg}`}>
+      {label}
+    </span>
+  );
+}
 
 const statusTabs: { value: HubOrderStatus | "all"; label: string }[] = [
   { value: "all",       label: "Todos" },
@@ -29,18 +46,20 @@ export default function OrdersHub() {
   const cancelOrder = useOrdersHubStore((s) => s.cancelOrder);
 
   const [statusFilter, setStatusFilter] = useState<HubOrderStatus | "all">("all");
+  const [platformFilter, setPlatformFilter] = useState<HubPlatform | "all">("all");
   const [search, setSearch] = useState("");
 
   const filtered = useMemo(() => {
     return orders
       .filter((o) => statusFilter === "all" || o.status === statusFilter)
+      .filter((o) => platformFilter === "all" || o.platform === platformFilter)
       .filter((o) =>
         search.trim() === "" ||
         o.customer.toLowerCase().includes(search.toLowerCase()) ||
         String(o.number).includes(search)
       )
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-  }, [orders, statusFilter, search]);
+  }, [orders, statusFilter, platformFilter, search]);
 
   // Stats
   const totalRevenue = orders
@@ -109,6 +128,32 @@ export default function OrdersHub() {
           })}
         </div>
 
+        {/* Platform filter */}
+        <div className="flex gap-1.5">
+          <button
+            onClick={() => setPlatformFilter("all")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${platformFilter === "all" ? "bg-neutral-600 text-white" : "bg-neutral-800 text-neutral-500 hover:bg-neutral-700"}`}
+          >
+            Todas plataformas
+          </button>
+          {(Object.keys(platformConfig) as HubPlatform[]).map((p) => (
+            <button
+              key={p}
+              onClick={() => setPlatformFilter(p)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${
+                platformFilter === p
+                  ? `${platformConfig[p].color} ${platformConfig[p].bg}`
+                  : "bg-neutral-800 text-neutral-500 border-transparent hover:bg-neutral-700"
+              }`}
+            >
+              {platformConfig[p].label}
+              <span className="ml-1 opacity-60">
+                {orders.filter((o) => o.platform === p).length}
+              </span>
+            </button>
+          ))}
+        </div>
+
         <div className="ml-auto relative">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500 text-xs">🔍</span>
           <input
@@ -128,6 +173,7 @@ export default function OrdersHub() {
             <tr className="text-xs text-neutral-500 text-left">
               <th className="px-6 py-3 font-medium">Pedido</th>
               <th className="px-4 py-3 font-medium">Cliente / Mesa</th>
+              <th className="px-4 py-3 font-medium">Plataforma</th>
               <th className="px-4 py-3 font-medium">Tipo</th>
               <th className="px-4 py-3 font-medium">Itens</th>
               <th className="px-4 py-3 font-medium">Total</th>
@@ -144,6 +190,9 @@ export default function OrdersHub() {
                   <span className="font-bold text-neutral-100">#{order.number}</span>
                 </td>
                 <td className="px-4 py-3.5 text-neutral-300">{order.customer}</td>
+                <td className="px-4 py-3.5">
+                  <PlatformBadge platform={order.platform} />
+                </td>
                 <td className="px-4 py-3.5">
                   <span title={order.type} className="text-lg">{typeIcon[order.type]}</span>
                 </td>
