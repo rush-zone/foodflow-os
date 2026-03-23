@@ -1,17 +1,17 @@
 "use client";
 
-import { useKDSStore, KDSStatus } from "@/store/useKDSStore";
-import KDSOrderCard from "./KDSOrderCard";
 import { useEffect, useState } from "react";
+import { useFlowStore, FlowStatus } from "@/store/useFlowStore";
+import KDSOrderCard from "./KDSOrderCard";
 
-const columns: { status: KDSStatus; label: string; icon: string; color: string }[] = [
-  { status: "new",       label: "Novos",      icon: "🔔", color: "text-blue-400" },
+const columns: { status: FlowStatus; label: string; icon: string; color: string }[] = [
+  { status: "pending",   label: "Novos",      icon: "🔔", color: "text-blue-400" },
   { status: "preparing", label: "Em Preparo", icon: "🔥", color: "text-yellow-400" },
   { status: "ready",     label: "Prontos",    icon: "✅", color: "text-green-400" },
 ];
 
 export default function KDS() {
-  const orders = useKDSStore((s) => s.orders);
+  const orders = useFlowStore((s) => s.orders);
   const [clock, setClock] = useState("");
 
   useEffect(() => {
@@ -22,14 +22,16 @@ export default function KDS() {
     return () => clearInterval(id);
   }, []);
 
+  // KDS shows orders that are in kitchen phase
+  const kdsOrders = orders.filter((o) =>
+    ["pending", "preparing", "ready"].includes(o.status)
+  );
+
   return (
     <div className="flex flex-col h-screen bg-neutral-900">
-      {/* Header */}
       <header className="flex items-center justify-between px-6 py-3 bg-neutral-900 border-b border-neutral-800 shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-brand-primary rounded-lg flex items-center justify-center text-white font-bold text-sm">
-            FF
-          </div>
+          <div className="w-8 h-8 bg-brand-primary rounded-lg flex items-center justify-center text-white font-bold text-sm">FF</div>
           <div>
             <span className="font-bold text-white text-sm">FoodFlow OS</span>
             <span className="ml-2 text-xs text-yellow-400 bg-yellow-400/10 border border-yellow-400/20 px-2 py-0.5 rounded-full">
@@ -37,11 +39,10 @@ export default function KDS() {
             </span>
           </div>
         </div>
-
         <div className="flex items-center gap-6">
           <div className="flex gap-4 text-sm">
             {columns.map((col) => {
-              const count = orders.filter((o) => o.status === col.status).length;
+              const count = kdsOrders.filter((o) => o.status === col.status).length;
               return (
                 <span key={col.status} className={`${col.color} font-medium`}>
                   {col.icon} {count} {col.label}
@@ -53,13 +54,11 @@ export default function KDS() {
         </div>
       </header>
 
-      {/* Columns */}
       <div className="flex flex-1 overflow-hidden gap-0 divide-x divide-neutral-800">
         {columns.map((col) => {
-          const colOrders = orders.filter((o) => o.status === col.status);
+          const colOrders = kdsOrders.filter((o) => o.status === col.status);
           return (
             <div key={col.status} className="flex-1 flex flex-col overflow-hidden">
-              {/* Column header */}
               <div className="px-4 py-3 border-b border-neutral-800 shrink-0">
                 <h2 className={`text-sm font-bold ${col.color}`}>
                   {col.icon} {col.label}
@@ -68,20 +67,14 @@ export default function KDS() {
                   </span>
                 </h2>
               </div>
-
-              {/* Cards */}
               <div className="flex-1 overflow-y-auto scrollbar-thin p-4 space-y-3">
                 {colOrders.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full text-neutral-700 text-center">
                     <span className="text-3xl mb-2">
-                      {col.status === "new" ? "😴" : col.status === "preparing" ? "⏳" : "🎉"}
+                      {col.status === "pending" ? "😴" : col.status === "preparing" ? "⏳" : "🎉"}
                     </span>
                     <p className="text-xs">
-                      {col.status === "new"
-                        ? "Nenhum pedido novo"
-                        : col.status === "preparing"
-                        ? "Nada em preparo"
-                        : "Tudo entregue!"}
+                      {col.status === "pending" ? "Nenhum pedido novo" : col.status === "preparing" ? "Nada em preparo" : "Tudo entregue!"}
                     </p>
                   </div>
                 ) : (

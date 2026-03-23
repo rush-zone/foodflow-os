@@ -1,20 +1,21 @@
 "use client";
 
-import { DeliveryOrder } from "@/store/useDeliveryStore";
-import { useDeliveryStore } from "@/store/useDeliveryStore";
+import { FlowOrder } from "@/store/useFlowStore";
 import DeliveryStatusBadge from "./DeliveryStatusBadge";
 import KDSTimer from "@/components/kds/KDSTimer";
 
-export default function DeliveryCard({ order }: { order: DeliveryOrder }) {
-  const select = useDeliveryStore((s) => s.select);
-  const selectedId = useDeliveryStore((s) => s.selectedId);
-  const isSelected = selectedId === order.id;
+interface Props {
+  order: FlowOrder;
+  selected: boolean;
+  onSelect: (id: string) => void;
+}
 
+export default function DeliveryCard({ order, selected, onSelect }: Props) {
   return (
     <button
-      onClick={() => select(order.id)}
+      onClick={() => onSelect(order.id)}
       className={`w-full text-left px-4 py-3.5 border-b border-neutral-800 transition-colors ${
-        isSelected ? "bg-brand-primary/5 border-l-2 border-l-brand-primary" : "hover:bg-neutral-800/50"
+        selected ? "bg-brand-primary/5 border-l-2 border-l-brand-primary" : "hover:bg-neutral-800/50"
       }`}
     >
       <div className="flex items-start justify-between gap-2 mb-2">
@@ -25,14 +26,15 @@ export default function DeliveryCard({ order }: { order: DeliveryOrder }) {
         <DeliveryStatusBadge status={order.status} />
       </div>
 
-      <div className="text-xs text-neutral-500 truncate mb-2">{order.address}</div>
+      {order.address && (
+        <div className="text-xs text-neutral-500 truncate mb-2">{order.address}</div>
+      )}
 
       <div className="flex items-center justify-between text-xs">
-        <div className="flex items-center gap-3 text-neutral-500">
-          <span>📍 {order.distance}</span>
-          <span>🕐 ~{order.estimatedMinutes}min</span>
-        </div>
-        {order.status !== "delivered" && order.status !== "failed" && (
+        <span className="text-neutral-500">
+          {order.items.length} {order.items.length === 1 ? "item" : "itens"} · R$ {order.total.toFixed(2).replace(".", ",")}
+        </span>
+        {!["delivered", "cancelled"].includes(order.status) && (
           <KDSTimer since={order.createdAt} urgent={50} warning={35} />
         )}
       </div>

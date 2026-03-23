@@ -1,22 +1,22 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useOrdersHubStore, HubOrderStatus, HubOrderType, HubPlatform } from "@/store/useOrdersHubStore";
+import { useFlowStore, FlowStatus, FlowPlatform, OrderType } from "@/store/useFlowStore";
 import HubStatusBadge from "./HubStatusBadge";
 
-const typeIcon: Record<HubOrderType, string> = {
+const typeIcon: Record<OrderType, string> = {
   local: "🪑", delivery: "🏍️", takeaway: "🥡",
 };
 
-const platformConfig: Record<HubPlatform, { label: string; color: string; bg: string }> = {
-  proprio:  { label: "Próprio",   color: "text-brand-primary", bg: "bg-brand-primary/10 border-brand-primary/30" },
-  ifood:    { label: "iFood",     color: "text-red-400",        bg: "bg-red-400/10 border-red-400/30" },
-  rappi:    { label: "Rappi",     color: "text-orange-400",     bg: "bg-orange-400/10 border-orange-400/30" },
-  anota_ai: { label: "Anota AI",  color: "text-blue-400",       bg: "bg-blue-400/10 border-blue-400/30" },
-  whatsapp: { label: "WhatsApp",  color: "text-green-400",      bg: "bg-green-400/10 border-green-400/30" },
+const platformConfig: Record<FlowPlatform, { label: string; color: string; bg: string }> = {
+  proprio:  { label: "Próprio",  color: "text-brand-primary", bg: "bg-brand-primary/10 border-brand-primary/30" },
+  ifood:    { label: "iFood",    color: "text-red-400",        bg: "bg-red-400/10 border-red-400/30" },
+  rappi:    { label: "Rappi",    color: "text-orange-400",     bg: "bg-orange-400/10 border-orange-400/30" },
+  anota_ai: { label: "Anota AI", color: "text-blue-400",       bg: "bg-blue-400/10 border-blue-400/30" },
+  whatsapp: { label: "WhatsApp", color: "text-green-400",      bg: "bg-green-400/10 border-green-400/30" },
 };
 
-function PlatformBadge({ platform }: { platform: HubPlatform }) {
+function PlatformBadge({ platform }: { platform: FlowPlatform }) {
   const { label, color, bg } = platformConfig[platform];
   return (
     <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${color} ${bg}`}>
@@ -25,7 +25,9 @@ function PlatformBadge({ platform }: { platform: HubPlatform }) {
   );
 }
 
-const statusTabs: { value: HubOrderStatus | "all"; label: string }[] = [
+const hubStatuses: FlowStatus[] = ["pending", "preparing", "ready", "delivered", "cancelled"];
+
+const statusTabs: { value: FlowStatus | "all"; label: string }[] = [
   { value: "all",       label: "Todos" },
   { value: "pending",   label: "Aguardando" },
   { value: "preparing", label: "Em Preparo" },
@@ -41,12 +43,16 @@ function elapsed(from: Date, to?: Date) {
   return `${Math.floor(m / 60)}h ${m % 60}min`;
 }
 
-export default function OrdersHub() {
-  const orders = useOrdersHubStore((s) => s.orders);
-  const cancelOrder = useOrdersHubStore((s) => s.cancelOrder);
+const paymentLabel: Record<string, string> = {
+  pix: "PIX", card: "Cartão", cash: "Dinheiro",
+};
 
-  const [statusFilter, setStatusFilter] = useState<HubOrderStatus | "all">("all");
-  const [platformFilter, setPlatformFilter] = useState<HubPlatform | "all">("all");
+export default function OrdersHub() {
+  const orders = useFlowStore((s) => s.orders);
+  const cancelOrder = useFlowStore((s) => s.cancelOrder);
+
+  const [statusFilter, setStatusFilter] = useState<FlowStatus | "all">("all");
+  const [platformFilter, setPlatformFilter] = useState<FlowPlatform | "all">("all");
   const [search, setSearch] = useState("");
 
   const filtered = useMemo(() => {
@@ -61,19 +67,13 @@ export default function OrdersHub() {
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }, [orders, statusFilter, platformFilter, search]);
 
-  // Stats
-  const totalRevenue = orders
-    .filter((o) => o.status === "delivered")
-    .reduce((s, o) => s + o.total, 0);
-  const activeCount = orders.filter((o) =>
-    ["pending", "preparing", "ready"].includes(o.status)
-  ).length;
+  const totalRevenue = orders.filter((o) => o.status === "delivered").reduce((s, o) => s + o.total, 0);
+  const activeCount = orders.filter((o) => ["pending", "preparing", "ready", "picked_up", "on_the_way"].includes(o.status)).length;
   const deliveredCount = orders.filter((o) => o.status === "delivered").length;
   const avgTicket = deliveredCount > 0 ? totalRevenue / deliveredCount : 0;
 
   return (
     <div className="flex flex-col h-screen bg-neutral-900">
-      {/* Header */}
       <header className="flex items-center justify-between px-6 py-3 border-b border-neutral-800 shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-brand-primary rounded-lg flex items-center justify-center text-white font-bold text-sm">FF</div>
@@ -89,13 +89,13 @@ export default function OrdersHub() {
         </p>
       </header>
 
-      {/* KPI bar */}
+      {/* KPIs */}
       <div className="grid grid-cols-4 divide-x divide-neutral-800 border-b border-neutral-800 shrink-0">
         {[
-          { label: "Receita do Dia", value: `R$ ${totalRevenue.toFixed(2).replace(".", ",")}`, color: "text-green-400" },
-          { label: "Pedidos Ativos",  value: String(activeCount),   color: "text-yellow-400" },
+          { label: "Receita do Dia",  value: `R$ ${totalRevenue.toFixed(2).replace(".", ",")}`, color: "text-green-400" },
+          { label: "Pedidos Ativos",  value: String(activeCount),    color: "text-yellow-400" },
           { label: "Entregues Hoje",  value: String(deliveredCount), color: "text-blue-400" },
-          { label: "Ticket Médio",    value: `R$ ${avgTicket.toFixed(2).replace(".", ",")}`, color: "text-brand-primary" },
+          { label: "Ticket Médio",    value: `R$ ${avgTicket.toFixed(2).replace(".", ",")}`,    color: "text-brand-primary" },
         ].map((kpi) => (
           <div key={kpi.label} className="px-6 py-4">
             <p className="text-xs text-neutral-500 mb-1">{kpi.label}</p>
@@ -105,64 +105,52 @@ export default function OrdersHub() {
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-3 px-6 py-3 border-b border-neutral-800 shrink-0">
-        <div className="flex gap-1.5">
+      <div className="flex flex-col gap-2 px-6 py-3 border-b border-neutral-800 shrink-0">
+        <div className="flex items-center gap-2 flex-wrap">
           {statusTabs.map((tab) => {
-            const count = tab.value === "all"
-              ? orders.length
-              : orders.filter((o) => o.status === tab.value).length;
+            const count = tab.value === "all" ? orders.length : orders.filter((o) => o.status === tab.value).length;
             return (
               <button
                 key={tab.value}
                 onClick={() => setStatusFilter(tab.value)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                  statusFilter === tab.value
-                    ? "bg-brand-primary text-white"
-                    : "bg-neutral-800 text-neutral-400 hover:bg-neutral-700"
+                  statusFilter === tab.value ? "bg-brand-primary text-white" : "bg-neutral-800 text-neutral-400 hover:bg-neutral-700"
                 }`}
               >
-                {tab.label}
-                <span className="ml-1.5 text-xs opacity-70">{count}</span>
+                {tab.label} <span className="opacity-70">{count}</span>
               </button>
             );
           })}
-        </div>
-
-        {/* Platform filter */}
-        <div className="flex gap-1.5">
+          <div className="h-4 w-px bg-neutral-700" />
           <button
             onClick={() => setPlatformFilter("all")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${platformFilter === "all" ? "bg-neutral-600 text-white" : "bg-neutral-800 text-neutral-500 hover:bg-neutral-700"}`}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${platformFilter === "all" ? "bg-neutral-600 text-white border-transparent" : "bg-neutral-800 text-neutral-500 border-transparent hover:bg-neutral-700"}`}
           >
             Todas plataformas
           </button>
-          {(Object.keys(platformConfig) as HubPlatform[]).map((p) => (
+          {(Object.keys(platformConfig) as FlowPlatform[]).map((p) => (
             <button
               key={p}
               onClick={() => setPlatformFilter(p)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
                 platformFilter === p
                   ? `${platformConfig[p].color} ${platformConfig[p].bg}`
                   : "bg-neutral-800 text-neutral-500 border-transparent hover:bg-neutral-700"
               }`}
             >
-              {platformConfig[p].label}
-              <span className="ml-1 opacity-60">
-                {orders.filter((o) => o.platform === p).length}
-              </span>
+              {platformConfig[p].label} <span className="opacity-60">{orders.filter((o) => o.platform === p).length}</span>
             </button>
           ))}
-        </div>
-
-        <div className="ml-auto relative">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500 text-xs">🔍</span>
-          <input
-            type="text"
-            placeholder="Buscar pedido ou cliente..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="bg-neutral-800 border border-neutral-700 rounded-lg pl-8 pr-4 py-1.5 text-xs text-neutral-100 placeholder-neutral-600 outline-none focus:border-brand-primary/50 w-64 transition-colors"
-          />
+          <div className="ml-auto relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500 text-xs">🔍</span>
+            <input
+              type="text"
+              placeholder="Buscar pedido ou cliente..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="bg-neutral-800 border border-neutral-700 rounded-lg pl-8 pr-4 py-1.5 text-xs text-neutral-100 placeholder-neutral-600 outline-none focus:border-brand-primary/50 w-64 transition-colors"
+            />
+          </div>
         </div>
       </div>
 
@@ -186,30 +174,18 @@ export default function OrdersHub() {
           <tbody className="divide-y divide-neutral-800">
             {filtered.map((order) => (
               <tr key={order.id} className="hover:bg-neutral-800/40 transition-colors group">
-                <td className="px-6 py-3.5">
-                  <span className="font-bold text-neutral-100">#{order.number}</span>
-                </td>
+                <td className="px-6 py-3.5"><span className="font-bold text-neutral-100">#{order.number}</span></td>
                 <td className="px-4 py-3.5 text-neutral-300">{order.customer}</td>
-                <td className="px-4 py-3.5">
-                  <PlatformBadge platform={order.platform} />
-                </td>
-                <td className="px-4 py-3.5">
-                  <span title={order.type} className="text-lg">{typeIcon[order.type]}</span>
-                </td>
+                <td className="px-4 py-3.5"><PlatformBadge platform={order.platform} /></td>
+                <td className="px-4 py-3.5"><span className="text-lg" title={order.type}>{typeIcon[order.type]}</span></td>
                 <td className="px-4 py-3.5 text-neutral-400 text-xs">
                   {order.items.slice(0, 2).map((i) => `${i.quantity}× ${i.name}`).join(", ")}
                   {order.items.length > 2 && ` +${order.items.length - 2}`}
                 </td>
-                <td className="px-4 py-3.5 font-bold text-neutral-100">
-                  R$ {order.total.toFixed(2).replace(".", ",")}
-                </td>
-                <td className="px-4 py-3.5 text-neutral-400 text-xs">{order.paymentMethod}</td>
-                <td className="px-4 py-3.5 text-neutral-500 text-xs tabular-nums">
-                  {elapsed(order.createdAt, order.closedAt)}
-                </td>
-                <td className="px-4 py-3.5">
-                  <HubStatusBadge status={order.status} />
-                </td>
+                <td className="px-4 py-3.5 font-bold text-neutral-100">R$ {order.total.toFixed(2).replace(".", ",")}</td>
+                <td className="px-4 py-3.5 text-neutral-400 text-xs">{paymentLabel[order.paymentMethod] ?? order.paymentMethod}</td>
+                <td className="px-4 py-3.5 text-neutral-500 text-xs tabular-nums">{elapsed(order.createdAt, order.closedAt)}</td>
+                <td className="px-4 py-3.5"><HubStatusBadge status={order.status} /></td>
                 <td className="px-4 py-3.5">
                   {!["delivered", "cancelled"].includes(order.status) && (
                     <button
@@ -224,7 +200,6 @@ export default function OrdersHub() {
             ))}
           </tbody>
         </table>
-
         {filtered.length === 0 && (
           <div className="flex flex-col items-center justify-center py-16 text-neutral-600">
             <span className="text-3xl mb-2">📭</span>
