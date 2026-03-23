@@ -71,18 +71,9 @@ const tooltipStyle = {
 
 export default function Analytics() {
   return (
-    <div className="flex flex-col h-screen bg-neutral-900 overflow-hidden">
+    <div className="flex flex-col h-full bg-neutral-900 overflow-hidden">
       {/* Header */}
-      <header className="flex items-center justify-between px-6 py-3 border-b border-neutral-800 shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-brand-primary rounded-lg flex items-center justify-center text-white font-bold text-sm">FF</div>
-          <div>
-            <span className="font-bold text-white text-sm">FoodFlow OS</span>
-            <span className="ml-2 text-xs text-neutral-400 bg-neutral-800 border border-neutral-700 px-2 py-0.5 rounded-full">
-              📊 BI & Analytics
-            </span>
-          </div>
-        </div>
+      <header className="flex items-center justify-end px-6 py-2 border-b border-neutral-800 shrink-0">
         <div className="flex gap-2">
           {["Hoje", "Semana", "Mês"].map((p) => (
             <button

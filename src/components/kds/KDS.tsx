@@ -28,30 +28,19 @@ export default function KDS() {
   );
 
   return (
-    <div className="flex flex-col h-screen bg-neutral-900">
-      <header className="flex items-center justify-between px-6 py-3 bg-neutral-900 border-b border-neutral-800 shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-brand-primary rounded-lg flex items-center justify-center text-white font-bold text-sm">FF</div>
-          <div>
-            <span className="font-bold text-white text-sm">FoodFlow OS</span>
-            <span className="ml-2 text-xs text-yellow-400 bg-yellow-400/10 border border-yellow-400/20 px-2 py-0.5 rounded-full">
-              🍳 Cozinha
-            </span>
-          </div>
+    <div className="flex flex-col h-full bg-neutral-900">
+      <header className="flex items-center justify-between px-6 py-2 bg-neutral-900 border-b border-neutral-800 shrink-0">
+        <div className="flex gap-4 text-sm">
+          {columns.map((col) => {
+            const count = kdsOrders.filter((o) => o.status === col.status).length;
+            return (
+              <span key={col.status} className={`${col.color} font-medium`}>
+                {col.icon} {count} {col.label}
+              </span>
+            );
+          })}
         </div>
-        <div className="flex items-center gap-6">
-          <div className="flex gap-4 text-sm">
-            {columns.map((col) => {
-              const count = kdsOrders.filter((o) => o.status === col.status).length;
-              return (
-                <span key={col.status} className={`${col.color} font-medium`}>
-                  {col.icon} {count} {col.label}
-                </span>
-              );
-            })}
-          </div>
-          <span className="font-mono text-neutral-400 text-sm tabular-nums">{clock}</span>
-        </div>
+        <span className="font-mono text-neutral-400 text-sm tabular-nums">{clock}</span>
       </header>
 
       <div className="flex flex-1 overflow-hidden gap-0 divide-x divide-neutral-800">

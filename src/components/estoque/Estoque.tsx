@@ -44,19 +44,7 @@ export default function Estoque() {
   const totalValue = items.reduce((s, i) => s + i.quantity * i.cost, 0);
 
   return (
-    <div className="flex flex-col h-screen bg-neutral-900">
-      {/* Header */}
-      <header className="flex items-center justify-between px-6 py-3 border-b border-neutral-800 shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-brand-primary rounded-lg flex items-center justify-center text-white font-bold text-sm">FF</div>
-          <div>
-            <span className="font-bold text-white text-sm">FoodFlow OS</span>
-            <span className="ml-2 text-xs text-neutral-400 bg-neutral-800 border border-neutral-700 px-2 py-0.5 rounded-full">
-              📦 Estoque
-            </span>
-          </div>
-        </div>
-      </header>
+    <div className="flex flex-col h-full bg-neutral-900">
 
       {/* KPI bar */}
       <div className="grid grid-cols-4 divide-x divide-neutral-800 border-b border-neutral-800 shrink-0">

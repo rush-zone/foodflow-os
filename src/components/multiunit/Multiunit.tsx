@@ -14,50 +14,38 @@ export default function Multiunit() {
   const openUnits   = units.filter((u) => u.status !== "closed").length;
 
   return (
-    <div className="flex flex-col h-screen bg-neutral-900">
+    <div className="flex flex-col h-full bg-neutral-900">
       {/* Header */}
-      <header className="flex items-center justify-between px-6 py-3 border-b border-neutral-800 shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-brand-primary rounded-lg flex items-center justify-center text-white font-bold text-sm">FF</div>
-          <div>
-            <span className="font-bold text-white text-sm">FoodFlow OS</span>
-            <span className="ml-2 text-xs text-neutral-400 bg-neutral-800 border border-neutral-700 px-2 py-0.5 rounded-full">
-              🏢 Multiunidade
+      <header className="flex items-center justify-between px-6 py-2 border-b border-neutral-800 shrink-0">
+        <div className="flex items-center gap-4 text-sm">
+          <span className="text-neutral-500 text-xs">
+            <span className="text-green-400 font-bold">{openUnits}</span>/{units.length} unidades abertas
+          </span>
+          {totalAlerts > 0 && (
+            <span className="text-xs text-red-400 font-bold bg-red-400/10 border border-red-400/20 px-2 py-1 rounded-full">
+              ⚠ {totalAlerts} {totalAlerts === 1 ? "alerta" : "alertas"} na rede
             </span>
-          </div>
+          )}
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-4 text-sm">
-            <span className="text-neutral-500 text-xs">
-              <span className="text-green-400 font-bold">{openUnits}</span>/{units.length} unidades abertas
-            </span>
-            {totalAlerts > 0 && (
-              <span className="text-xs text-red-400 font-bold bg-red-400/10 border border-red-400/20 px-2 py-1 rounded-full">
-                ⚠ {totalAlerts} {totalAlerts === 1 ? "alerta" : "alertas"} na rede
-              </span>
-            )}
-          </div>
-
-          {/* View toggle */}
-          <div className="flex gap-1 bg-neutral-800 rounded-xl p-1">
-            <button
-              onClick={() => setView("unit")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                view === "unit" ? "bg-brand-primary text-white" : "text-neutral-400 hover:text-neutral-200"
-              }`}
-            >
-              Por Unidade
-            </button>
-            <button
-              onClick={() => setView("compare")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                view === "compare" ? "bg-brand-primary text-white" : "text-neutral-400 hover:text-neutral-200"
-              }`}
-            >
-              Comparativo
-            </button>
-          </div>
+        {/* View toggle */}
+        <div className="flex gap-1 bg-neutral-800 rounded-xl p-1">
+          <button
+            onClick={() => setView("unit")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              view === "unit" ? "bg-brand-primary text-white" : "text-neutral-400 hover:text-neutral-200"
+            }`}
+          >
+            Por Unidade
+          </button>
+          <button
+            onClick={() => setView("compare")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              view === "compare" ? "bg-brand-primary text-white" : "text-neutral-400 hover:text-neutral-200"
+            }`}
+          >
+            Comparativo
+          </button>
         </div>
       </header>
 
