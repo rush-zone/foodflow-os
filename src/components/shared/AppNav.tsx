@@ -4,8 +4,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const routes = [
-  { href: "/",    label: "PDV",     icon: "🖥️" },
-  { href: "/kds", label: "Cozinha", icon: "🍳" },
+  { href: "/",         label: "PDV",      icon: "🖥️" },
+  { href: "/kds",      label: "Cozinha",  icon: "🍳" },
+  { href: "/delivery", label: "Delivery", icon: "🏍️" },
 ];
 
 export default function AppNav() {
