@@ -2,6 +2,8 @@
 
 import { useOrderStore } from "@/store/useOrderStore";
 import OrderItem from "./OrderItem";
+import UpsellSuggestions from "./UpsellSuggestions";
+import ComboDetector from "./ComboDetector";
 
 export default function OrderPanel() {
   const items = useOrderStore((s) => s.items);
@@ -35,9 +37,7 @@ export default function OrderPanel() {
           <div className="flex flex-col items-center justify-center h-full text-neutral-600 px-4 text-center">
             <span className="text-4xl mb-3">🛒</span>
             <p className="text-sm font-medium">Pedido vazio</p>
-            <p className="text-xs mt-1">
-              Selecione produtos no catálogo
-            </p>
+            <p className="text-xs mt-1">Selecione produtos no catálogo</p>
           </div>
         ) : (
           <div className="divide-y divide-neutral-800">
@@ -47,6 +47,12 @@ export default function OrderPanel() {
           </div>
         )}
       </div>
+
+      {/* Combo detector */}
+      <ComboDetector />
+
+      {/* Upsell suggestions */}
+      <UpsellSuggestions />
     </div>
   );
 }
