@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useFlowStore, FlowStatus } from "@/store/useFlowStore";
 import DeliveryCard from "./DeliveryCard";
 import DeliveryDetail from "./DeliveryDetail";
+import DeliveryMapDynamic from "./DeliveryMapDynamic";
 
 const summaryItems: { status: FlowStatus; label: string; icon: string; color: string }[] = [
   { status: "on_the_way", label: "A Caminho",  icon: "🏍️", color: "text-brand-primary" },
@@ -54,7 +55,8 @@ export default function DeliveryDashboard() {
       </header>
 
       <div className="flex flex-1 overflow-hidden">
-        <div className="w-80 border-r border-neutral-800 flex flex-col overflow-hidden shrink-0">
+        {/* Left — orders list */}
+        <div className="w-72 border-r border-neutral-800 flex flex-col overflow-hidden shrink-0">
           <div className="px-4 py-2.5 border-b border-neutral-800 shrink-0">
             <p className="text-xs text-neutral-500">
               {active.length} {active.length === 1 ? "entrega ativa" : "entregas ativas"}
@@ -71,7 +73,14 @@ export default function DeliveryDashboard() {
             ))}
           </div>
         </div>
-        <div className="flex-1 overflow-hidden">
+
+        {/* Center — live map */}
+        <div className="flex-1 overflow-hidden p-3">
+          <DeliveryMapDynamic />
+        </div>
+
+        {/* Right — order detail */}
+        <div className="w-80 border-l border-neutral-800 shrink-0 overflow-hidden">
           <DeliveryDetail selectedId={selectedId} />
         </div>
       </div>
