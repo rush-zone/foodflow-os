@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import AppNav from "@/components/shared/AppNav";
 
 export const metadata: Metadata = {
   title: "FoodFlow OS",
@@ -15,6 +16,7 @@ export default function RootLayout({
     <html lang="pt-BR">
       <body className="h-screen overflow-hidden bg-neutral-900 text-neutral-50">
         {children}
+        <AppNav />
       </body>
     </html>
   );
