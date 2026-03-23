@@ -1,8 +1,29 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useFlowStore, FlowStatus } from "@/store/useFlowStore";
 import KDSOrderCard from "./KDSOrderCard";
+
+function playAlert() {
+  try {
+    const ctx = new AudioContext();
+    const play = (freq: number, start: number, dur: number) => {
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = "sine";
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.25, ctx.currentTime + start);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + dur);
+      osc.start(ctx.currentTime + start);
+      osc.stop(ctx.currentTime + start + dur);
+    };
+    play(880, 0,    0.12);
+    play(1100, 0.16, 0.12);
+    play(880, 0.32, 0.18);
+  } catch { /* browser blocked autoplay — silent fail */ }
+}
 
 const columns: { status: FlowStatus; label: string; icon: string; color: string }[] = [
   { status: "pending",   label: "Novos",      icon: "🔔", color: "text-blue-400" },
@@ -13,7 +34,11 @@ const columns: { status: FlowStatus; label: string; icon: string; color: string 
 export default function KDS() {
   const orders = useFlowStore((s) => s.orders);
   const [clock, setClock] = useState("");
+  const prevPendingIds = useRef<Set<string>>(
+    new Set(orders.filter((o) => o.status === "pending").map((o) => o.id))
+  );
 
+  // Clock
   useEffect(() => {
     const tick = () =>
       setClock(new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
@@ -21,6 +46,14 @@ export default function KDS() {
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, []);
+
+  // Sound alert when a new pending order arrives
+  useEffect(() => {
+    const currentIds = new Set(orders.filter((o) => o.status === "pending").map((o) => o.id));
+    const hasNew = [...currentIds].some((id) => !prevPendingIds.current.has(id));
+    if (hasNew) playAlert();
+    prevPendingIds.current = currentIds;
+  }, [orders]);
 
   // KDS shows orders that are in kitchen phase
   const kdsOrders = orders.filter((o) =>
