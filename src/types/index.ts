@@ -1,3 +1,15 @@
+export interface StockLink {
+  stockId: string; // id do StockItem
+  qty: number;     // quantidade consumida por unidade vendida
+}
+
+export interface ProductExtra {
+  id: string;
+  name: string;
+  price: number;        // 0 = grátis
+  stockLinks?: StockLink[]; // insumos consumidos por unidade deste extra
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -7,6 +19,8 @@ export interface Product {
   category: string;
   popular?: boolean;
   available: boolean;
+  stockLinks?: StockLink[];  // insumos consumidos ao vender
+  extras?: ProductExtra[];   // adicionais/ingredientes opcionais
 }
 
 export interface Category {

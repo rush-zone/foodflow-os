@@ -2,7 +2,9 @@
 
 import { useState, useMemo } from "react";
 import { useFlowStore, FlowStatus, FlowPlatform, OrderType } from "@/store/useFlowStore";
+import { toast } from "@/store/useToastStore";
 import HubStatusBadge from "./HubStatusBadge";
+import HubOrderDrawer from "./HubOrderDrawer";
 
 const typeIcon: Record<OrderType, string> = {
   local: "🪑", delivery: "🏍️", takeaway: "🥡",
@@ -25,15 +27,15 @@ function PlatformBadge({ platform }: { platform: FlowPlatform }) {
   );
 }
 
-const hubStatuses: FlowStatus[] = ["pending", "preparing", "ready", "delivered", "cancelled"];
-
 const statusTabs: { value: FlowStatus | "all"; label: string }[] = [
-  { value: "all",       label: "Todos" },
-  { value: "pending",   label: "Aguardando" },
-  { value: "preparing", label: "Em Preparo" },
-  { value: "ready",     label: "Prontos" },
-  { value: "delivered", label: "Entregues" },
-  { value: "cancelled", label: "Cancelados" },
+  { value: "all",        label: "Todos" },
+  { value: "pending",    label: "Aguardando" },
+  { value: "preparing",  label: "Em Preparo" },
+  { value: "ready",      label: "Prontos" },
+  { value: "picked_up",  label: "Coletado" },
+  { value: "on_the_way", label: "A Caminho" },
+  { value: "delivered",  label: "Entregues" },
+  { value: "cancelled",  label: "Cancelados" },
 ];
 
 function elapsed(from: Date, to?: Date) {
@@ -47,9 +49,42 @@ const paymentLabel: Record<string, string> = {
   pix: "PIX", card: "Cartão", cash: "Dinheiro",
 };
 
+function exportCSV(rows: ReturnType<typeof useFlowStore.getState>["orders"]) {
+  const header = ["#", "Cliente", "Plataforma", "Tipo", "Total", "Pagamento", "Status", "Criado", "Fechado"];
+  const lines = rows.map((o) => [
+    o.number,
+    `"${o.customer}"`,
+    o.platform,
+    o.type,
+    o.total.toFixed(2),
+    o.paymentMethod,
+    o.status,
+    o.createdAt.toISOString(),
+    o.closedAt?.toISOString() ?? "",
+  ].join(","));
+  const csv = [header.join(","), ...lines].join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  a.href = url;
+  a.download = `pedidos_${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast.success("CSV exportado", `${rows.length} pedidos`);
+}
+
 export default function OrdersHub() {
-  const orders = useFlowStore((s) => s.orders);
-  const cancelOrder = useFlowStore((s) => s.cancelOrder);
+  const orders      = useFlowStore((s) => s.orders);
+  const _cancelOrder = useFlowStore((s) => s.cancelOrder);
+
+  function cancelOrder(id: string) {
+    const order = orders.find((o) => o.id === id);
+    _cancelOrder(id);
+    if (order) toast.warning("Pedido cancelado", `#${order.number} — ${order.customer}`);
+  }
+
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selectedOrder = selectedId ? orders.find((o) => o.id === selectedId) ?? null : null;
 
   const [statusFilter, setStatusFilter] = useState<FlowStatus | "all">("all");
   const [platformFilter, setPlatformFilter] = useState<FlowPlatform | "all">("all");
@@ -74,10 +109,23 @@ export default function OrdersHub() {
 
   return (
     <div className="flex flex-col h-full bg-neutral-900">
-      <header className="flex items-center justify-end px-6 py-2 border-b border-neutral-800 shrink-0">
+      {selectedOrder && (
+        <HubOrderDrawer
+          order={selectedOrder}
+          onClose={() => setSelectedId(null)}
+          onCancel={(id) => { cancelOrder(id); setSelectedId(null); }}
+        />
+      )}
+      <header className="flex items-center justify-between px-6 py-2 border-b border-neutral-800 shrink-0">
         <p className="text-xs text-neutral-500">
           {new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })}
         </p>
+        <button
+          onClick={() => exportCSV(filtered)}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-white text-xs font-medium rounded-lg border border-neutral-700 transition-all"
+        >
+          ⬇ Exportar CSV
+        </button>
       </header>
 
       {/* KPIs */}
@@ -164,7 +212,13 @@ export default function OrdersHub() {
           </thead>
           <tbody className="divide-y divide-neutral-800">
             {filtered.map((order) => (
-              <tr key={order.id} className="hover:bg-neutral-800/40 transition-colors group">
+              <tr
+                key={order.id}
+                onClick={() => setSelectedId(order.id)}
+                className={`hover:bg-neutral-800/40 transition-colors group cursor-pointer ${
+                  selectedId === order.id ? "bg-neutral-800/60 ring-1 ring-inset ring-brand-primary/30" : ""
+                }`}
+              >
                 <td className="px-6 py-3.5"><span className="font-bold text-neutral-100">#{order.number}</span></td>
                 <td className="px-4 py-3.5 text-neutral-300">{order.customer}</td>
                 <td className="px-4 py-3.5"><PlatformBadge platform={order.platform} /></td>
@@ -180,7 +234,7 @@ export default function OrdersHub() {
                 <td className="px-4 py-3.5">
                   {!["delivered", "cancelled"].includes(order.status) && (
                     <button
-                      onClick={() => cancelOrder(order.id)}
+                      onClick={(e) => { e.stopPropagation(); cancelOrder(order.id); }}
                       className="text-xs text-neutral-600 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
                     >
                       Cancelar

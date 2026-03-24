@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import { OrderType, FlowPlatform, FlowPayment } from "@/store/useFlowStore";
 import { useCRMStore } from "@/store/useCRMStore";
+import { useConfigStore } from "@/store/useConfigStore";
 
 interface OrderTypeModalProps {
   onConfirm: (data: {
@@ -33,7 +34,8 @@ const payments: { id: FlowPayment; label: string; icon: string }[] = [
 ];
 
 export default function OrderTypeModal({ onConfirm, onClose }: OrderTypeModalProps) {
-  const crmCustomers = useCRMStore((s) => s.customers);
+  const crmCustomers   = useCRMStore((s) => s.customers);
+  const deliveryConfig = useConfigStore((s) => s.config.delivery);
 
   const [type, setType]               = useState<OrderType>("local");
   const [platform, setPlatform]       = useState<FlowPlatform>("proprio");
@@ -189,6 +191,18 @@ export default function OrderTypeModal({ onConfirm, onClose }: OrderTypeModalPro
 
               {type === "delivery" && (
                 <>
+                  {/* Info de entrega das Configurações */}
+                  <div className="flex gap-3 bg-neutral-700/50 border border-neutral-600 rounded-xl px-4 py-2.5 text-xs text-neutral-400">
+                    <span>🏍️ Taxa: <b className="text-white">R$ {deliveryConfig.fee.toFixed(2).replace(".", ",")}</b></span>
+                    <span>·</span>
+                    <span>⏱ ~<b className="text-white">{deliveryConfig.estimatedMinutes} min</b></span>
+                    {deliveryConfig.freeAbove > 0 && (
+                      <>
+                        <span>·</span>
+                        <span>Grátis acima de <b className="text-green-400">R$ {deliveryConfig.freeAbove.toFixed(0)}</b></span>
+                      </>
+                    )}
+                  </div>
                   <div>
                     <p className="text-xs text-neutral-500 mb-2 font-medium">Endereço</p>
                     <input

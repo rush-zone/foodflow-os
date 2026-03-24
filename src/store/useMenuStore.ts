@@ -1,4 +1,6 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import { makePersistStorage } from "@/lib/storage";
 import { Product, Category } from "@/types";
 import { products as seedProducts, categories as seedCategories } from "@/data/products";
 
@@ -14,7 +16,7 @@ interface MenuStore {
   addCategory: (data: Omit<Category, "id">) => void;
 }
 
-export const useMenuStore = create<MenuStore>((set, get) => ({
+export const useMenuStore = create<MenuStore>()(persist((set, get) => ({
   products: seedProducts,
   categories: seedCategories,
 
@@ -55,4 +57,4 @@ export const useMenuStore = create<MenuStore>((set, get) => ({
         { ...data, id: `cat${Date.now()}` },
       ],
     }),
-}));
+}), { name: "foodflow-menu-v2", storage: makePersistStorage<MenuStore>() }));

@@ -1,4 +1,7 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import { makePersistStorage } from "@/lib/storage";
+import { StockLink } from "@/types";
 
 export type StockCategory = "carnes" | "bebidas" | "vegetais" | "massas" | "embalagens" | "temperos";
 
@@ -21,6 +24,12 @@ interface EstoqueStore {
   items: StockItem[];
   adjust: (id: string, delta: number) => void;
   restock: (id: string) => void;
+  addItem: (data: Omit<StockItem, "id" | "lastUpdated">) => void;
+  deductForSale: (sold: Array<{
+    stockLinks?: StockLink[];
+    quantity: number;
+    extras?: Array<{ stockLinks?: StockLink[] }>;
+  }>) => void;
 }
 
 function status(item: StockItem): StockStatus {
@@ -52,7 +61,7 @@ const mockItems: StockItem[] = [
   { id: "s15", name: "Cheddar Fatiado",       category: "carnes",     unit: "kg",  quantity: 2,   minQuantity: 3,  idealQuantity: 10,  cost: 45.0,  supplier: "Frigorífico ABC", lastUpdated: now },
 ];
 
-export const useEstoqueStore = create<EstoqueStore>((set, get) => ({
+export const useEstoqueStore = create<EstoqueStore>()(persist((set, get) => ({
   items: mockItems,
 
   adjust: (id, delta) =>
@@ -72,4 +81,36 @@ export const useEstoqueStore = create<EstoqueStore>((set, get) => ({
           : i
       ),
     }),
-}));
+
+  addItem: (data) =>
+    set({
+      items: [
+        ...get().items,
+        { ...data, id: `s${Date.now()}`, lastUpdated: new Date() },
+      ],
+    }),
+
+  deductForSale: (sold) => {
+    const deductions = new Map<string, number>();
+    for (const { stockLinks, quantity, extras } of sold) {
+      // Produto base
+      for (const link of stockLinks ?? []) {
+        deductions.set(link.stockId, (deductions.get(link.stockId) ?? 0) + link.qty * quantity);
+      }
+      // Adicionais escolhidos pelo cliente
+      for (const extra of extras ?? []) {
+        for (const link of extra.stockLinks ?? []) {
+          deductions.set(link.stockId, (deductions.get(link.stockId) ?? 0) + link.qty * quantity);
+        }
+      }
+    }
+    if (deductions.size === 0) return;
+    set({
+      items: get().items.map((item) => {
+        const delta = deductions.get(item.id);
+        if (delta === undefined) return item;
+        return { ...item, quantity: Math.max(0, item.quantity - delta), lastUpdated: new Date() };
+      }),
+    });
+  },
+}), { name: "foodflow-estoque", storage: makePersistStorage<EstoqueStore>() }));

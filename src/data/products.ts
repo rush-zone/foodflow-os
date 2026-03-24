@@ -19,6 +19,22 @@ export const products: Product[] = [
     category: "burgers",
     popular: true,
     available: true,
+    stockLinks: [
+      { stockId: "s1",  qty: 1    },
+      { stockId: "s11", qty: 1    },
+      { stockId: "s15", qty: 0.05 },
+      { stockId: "s7",  qty: 0.1  },
+      { stockId: "s8",  qty: 0.1  },
+    ],
+    extras: [
+      { id: "x-queijo",   name: "Queijo extra",         price: 2.0 },
+      { id: "x-bacon",    name: "Bacon crocante",        price: 4.0 },
+      { id: "x-pickles",  name: "Pickles extra",         price: 0   },
+      { id: "x-maio",     name: "Maionese especial",     price: 2.0 },
+      { id: "x-ovo",      name: "Ovo frito",             price: 3.0 },
+      { id: "x-cheddar",  name: "Cheddar cremoso",       price: 3.0 },
+      { id: "x-jalap",    name: "Jalapeño",              price: 1.5 },
+    ],
   },
   {
     id: "2",
@@ -29,6 +45,21 @@ export const products: Product[] = [
     category: "burgers",
     popular: true,
     available: true,
+    stockLinks: [
+      { stockId: "s1",  qty: 2    },
+      { stockId: "s11", qty: 1    },
+      { stockId: "s15", qty: 0.1  },
+      { stockId: "s3",  qty: 0.05 },
+    ],
+    extras: [
+      { id: "x-queijo",   name: "Queijo extra",         price: 2.0 },
+      { id: "x-bacon",    name: "Bacon extra",           price: 4.0 },
+      { id: "x-pickles",  name: "Pickles extra",         price: 0   },
+      { id: "x-maio",     name: "Maionese especial",     price: 2.0 },
+      { id: "x-ovo",      name: "Ovo frito",             price: 3.0 },
+      { id: "x-cheddar",  name: "Cheddar cremoso",       price: 3.0 },
+      { id: "x-jalap",    name: "Jalapeño",              price: 1.5 },
+    ],
   },
   {
     id: "3",
@@ -38,6 +69,17 @@ export const products: Product[] = [
     image: "https://images.unsplash.com/photo-1606755962773-d324e0a13086?w=400",
     category: "burgers",
     available: true,
+    stockLinks: [
+      { stockId: "s2",  qty: 0.2 },
+      { stockId: "s11", qty: 1   },
+    ],
+    extras: [
+      { id: "x-queijo",   name: "Queijo extra",         price: 2.0 },
+      { id: "x-pickles",  name: "Pickles extra",         price: 0   },
+      { id: "x-maio",     name: "Maionese especial",     price: 2.0 },
+      { id: "x-bacon",    name: "Bacon crocante",        price: 4.0 },
+      { id: "x-jalap",    name: "Jalapeño",              price: 1.5 },
+    ],
   },
   {
     id: "4",
@@ -47,6 +89,17 @@ export const products: Product[] = [
     image: "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=400",
     category: "pizza",
     available: true,
+    stockLinks: [
+      { stockId: "s10", qty: 0.3 },
+      { stockId: "s8",  qty: 0.2 },
+    ],
+    extras: [
+      { id: "px-borda",   name: "Borda recheada",        price: 5.0 },
+      { id: "px-mozz",    name: "Mozzarella extra",       price: 4.0 },
+      { id: "px-bacon",   name: "Bacon",                  price: 5.0 },
+      { id: "px-pepp",    name: "Pepperoni",              price: 6.0 },
+      { id: "px-rucula",  name: "Rúcula",                 price: 2.0 },
+    ],
   },
   {
     id: "5",
@@ -57,6 +110,16 @@ export const products: Product[] = [
     category: "pizza",
     popular: true,
     available: true,
+    stockLinks: [
+      { stockId: "s10", qty: 0.3 },
+    ],
+    extras: [
+      { id: "px-borda",   name: "Borda recheada",        price: 5.0 },
+      { id: "px-mozz",    name: "Mozzarella extra",       price: 4.0 },
+      { id: "px-pepp",    name: "Pepperoni extra",        price: 6.0 },
+      { id: "px-bacon",   name: "Bacon",                  price: 5.0 },
+      { id: "px-rucula",  name: "Rúcula",                 price: 2.0 },
+    ],
   },
   {
     id: "6",
@@ -66,6 +129,9 @@ export const products: Product[] = [
     image: "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=400",
     category: "drinks",
     available: true,
+    stockLinks: [
+      { stockId: "s4", qty: 1 }, // Coca-Cola Lata 350ml
+    ],
   },
   {
     id: "7",
@@ -75,6 +141,9 @@ export const products: Product[] = [
     image: "https://images.unsplash.com/photo-1621506289937-a8e4df240d0b?w=400",
     category: "drinks",
     available: true,
+    stockLinks: [
+      { stockId: "s5", qty: 0.4 }, // Suco de Laranja Natural
+    ],
   },
   {
     id: "8",
@@ -85,6 +154,12 @@ export const products: Product[] = [
     category: "sides",
     popular: true,
     available: true,
+    extras: [
+      { id: "fx-cheddar", name: "Cheddar cremoso",  price: 3.0 },
+      { id: "fx-bacon",   name: "Bacon bits",        price: 3.0 },
+      { id: "fx-cebola",  name: "Cebola caramelizada", price: 2.0 },
+      { id: "fx-kat",     name: "Ketchup especial",  price: 0   },
+    ],
   },
   {
     id: "9",
@@ -94,6 +169,12 @@ export const products: Product[] = [
     image: "https://images.unsplash.com/photo-1541592106381-b31e9677c0e5?w=400",
     category: "sides",
     available: true,
+    extras: [
+      { id: "fx-cheddar", name: "Cheddar cremoso",    price: 3.0 },
+      { id: "fx-bacon",   name: "Bacon bits",          price: 3.0 },
+      { id: "fx-cebola",  name: "Cebola caramelizada", price: 2.0 },
+      { id: "fx-kat",     name: "Ketchup especial",    price: 0   },
+    ],
   },
   {
     id: "10",
@@ -122,5 +203,8 @@ export const products: Product[] = [
     image: "https://images.unsplash.com/photo-1639024471283-03518883512d?w=400",
     category: "sides",
     available: true,
+    stockLinks: [
+      { stockId: "s9", qty: 0.15 }, // Cebola
+    ],
   },
 ];

@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useCaixaStore, MovementType } from "@/store/useCaixaStore";
 import { useFlowStore } from "@/store/useFlowStore";
+import { useAuthStore } from "@/store/useAuthStore";
+import { toast } from "@/store/useToastStore";
 
 const OPERATORS = ["Admin", "João", "Maria", "Carlos"];
 
@@ -12,13 +14,15 @@ function fmt(v: number) {
 
 // ─── Abertura ────────────────────────────────────────────────────────────────
 function AberturaCaixa() {
-  const open = useCaixaStore((s) => s.open);
-  const [operator, setOperator] = useState(OPERATORS[0]);
-  const [balance, setBalance] = useState("0,00");
+  const open         = useCaixaStore((s) => s.open);
+  const loggedIn     = useAuthStore((s) => s.operator);
+  const [operator, setOperator] = useState(loggedIn ?? OPERATORS[0]);
+  const [balance, setBalance]   = useState("0,00");
 
   function handleOpen() {
     const val = parseFloat(balance.replace(",", ".")) || 0;
     open(operator, val);
+    toast.success("Caixa aberto", `Operador: ${operator} · Fundo: R$ ${fmt(val)}`);
   }
 
   return (
@@ -34,6 +38,17 @@ function AberturaCaixa() {
       <div className="w-full max-w-sm space-y-4">
         <div>
           <p className="text-xs text-neutral-500 mb-2 font-medium">Operador</p>
+          {loggedIn ? (
+            <div className="flex items-center gap-3 px-4 py-3 bg-brand-primary/10 border border-brand-primary/30 rounded-xl">
+              <div className="w-8 h-8 rounded-full bg-orange-500/20 border border-orange-500/40 flex items-center justify-center text-xs font-bold text-orange-400">
+                {loggedIn.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-white">{loggedIn}</p>
+                <p className="text-xs text-neutral-500">operador logado</p>
+              </div>
+            </div>
+          ) : (
           <div className="grid grid-cols-2 gap-2">
             {OPERATORS.map((op) => (
               <button
@@ -49,6 +64,7 @@ function AberturaCaixa() {
               </button>
             ))}
           </div>
+          )}
         </div>
 
         <div>
@@ -81,7 +97,9 @@ function MovementModal({ type, onClose }: { type: MovementType; onClose: () => v
   function handleSave() {
     const val = parseFloat(amount.replace(",", "."));
     if (!val || val <= 0) return;
-    addMovement(type, val, note.trim() || (type === "suprimento" ? "Suprimento" : "Sangria"));
+    const desc = note.trim() || (type === "suprimento" ? "Suprimento" : "Sangria");
+    addMovement(type, val, desc);
+    toast.info(isSup ? "Suprimento registrado" : "Sangria registrada", `R$ ${fmt(val)}${note.trim() ? ` — ${note.trim()}` : ""}`);
     onClose();
   }
 
@@ -134,19 +152,20 @@ function FechamentoModal({ onClose }: { onClose: () => void }) {
   const { openingBalance, movements, openedAt, operator, close } = useCaixaStore();
   const orders = useFlowStore((s) => s.orders);
 
-  const todayOrders = orders.filter(
-    (o) => o.status === "delivered" || o.status === "ready" || o.closedAt != null
+  // Only orders from this shift
+  const shiftOrders = orders.filter((o) =>
+    o.status !== "cancelled" && openedAt && o.createdAt >= openedAt
   );
 
   const byPayment = {
-    pix:  todayOrders.filter((o) => o.paymentMethod === "pix").reduce((s, o) => s + o.total, 0),
-    card: todayOrders.filter((o) => o.paymentMethod === "card").reduce((s, o) => s + o.total, 0),
-    cash: todayOrders.filter((o) => o.paymentMethod === "cash").reduce((s, o) => s + o.total, 0),
+    pix:  shiftOrders.filter((o) => o.paymentMethod === "pix").reduce((s, o) => s + o.total, 0),
+    card: shiftOrders.filter((o) => o.paymentMethod === "card").reduce((s, o) => s + o.total, 0),
+    cash: shiftOrders.filter((o) => o.paymentMethod === "cash").reduce((s, o) => s + o.total, 0),
   };
 
-  const supTotal = movements.filter((m) => m.type === "suprimento").reduce((s, m) => s + m.amount, 0);
-  const sanTotal = movements.filter((m) => m.type === "sangria").reduce((s, m) => s + m.amount, 0);
-  const expectedCash = openingBalance + byPayment.cash + supTotal - sanTotal;
+  const manualSup   = movements.filter((m) => m.type === "suprimento" && !m.auto).reduce((s, m) => s + m.amount, 0);
+  const sanTotal    = movements.filter((m) => m.type === "sangria").reduce((s, m) => s + m.amount, 0);
+  const expectedCash = openingBalance + byPayment.cash + manualSup - sanTotal;
   const duration = openedAt
     ? Math.round((Date.now() - openedAt.getTime()) / 60000)
     : 0;
@@ -154,6 +173,7 @@ function FechamentoModal({ onClose }: { onClose: () => void }) {
   function handleClose() {
     close();
     onClose();
+    toast.warning("Caixa fechado", `Duração: ${duration}min`);
   }
 
   return (
@@ -170,7 +190,7 @@ function FechamentoModal({ onClose }: { onClose: () => void }) {
               { label: "Operador",    value: operator },
               { label: "Duração",     value: `${duration} min` },
               { label: "Troco inicial", value: `R$ ${fmt(openingBalance)}` },
-              { label: "Pedidos",     value: String(todayOrders.length) },
+              { label: "Pedidos",     value: String(shiftOrders.length) },
             ].map((row) => (
               <div key={row.label} className="bg-neutral-700/50 rounded-xl px-4 py-3">
                 <p className="text-xs text-neutral-500 mb-1">{row.label}</p>
@@ -204,12 +224,15 @@ function FechamentoModal({ onClose }: { onClose: () => void }) {
               <p className="text-xs text-neutral-500 mb-2 font-medium">Movimentações</p>
               <div className="space-y-1.5">
                 {movements.map((m) => (
-                  <div key={m.id} className="flex justify-between items-center px-4 py-2 bg-neutral-700/40 rounded-lg">
-                    <div>
-                      <span className={`text-xs font-bold ${m.type === "suprimento" ? "text-blue-400" : "text-red-400"}`}>
-                        {m.type === "suprimento" ? "+" : "−"} R$ {fmt(m.amount)}
-                      </span>
-                      <span className="text-xs text-neutral-500 ml-2">{m.note}</span>
+                  <div key={m.id} className={`flex justify-between items-center px-4 py-2 rounded-lg ${m.auto ? "bg-green-500/5 border border-green-500/10" : "bg-neutral-700/40"}`}>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs">{m.auto ? "💵" : m.type === "suprimento" ? "➕" : "➖"}</span>
+                      <div>
+                        <span className={`text-xs font-bold ${m.type === "suprimento" ? "text-green-400" : "text-red-400"}`}>
+                          {m.type === "suprimento" ? "+" : "−"} R$ {fmt(m.amount)}
+                        </span>
+                        <span className="text-xs text-neutral-500 ml-2">{m.note}</span>
+                      </div>
                     </div>
                     <span className="text-xs text-neutral-600">
                       {m.at.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
@@ -249,16 +272,21 @@ function CaixaAberta() {
   const [modal, setModal] = useState<MovementType | null>(null);
   const [showFechamento, setShowFechamento] = useState(false);
 
-  const activeOrders = orders.filter((o) => !["cancelled"].includes(o.status));
+  // Only count orders from this shift
+  const shiftOrders = orders.filter((o) =>
+    !["cancelled"].includes(o.status) && openedAt && o.createdAt >= openedAt
+  );
   const byPayment = {
-    pix:  activeOrders.filter((o) => o.paymentMethod === "pix").reduce((s, o) => s + o.total, 0),
-    card: activeOrders.filter((o) => o.paymentMethod === "card").reduce((s, o) => s + o.total, 0),
-    cash: activeOrders.filter((o) => o.paymentMethod === "cash").reduce((s, o) => s + o.total, 0),
+    pix:  shiftOrders.filter((o) => o.paymentMethod === "pix").reduce((s, o) => s + o.total, 0),
+    card: shiftOrders.filter((o) => o.paymentMethod === "card").reduce((s, o) => s + o.total, 0),
+    cash: shiftOrders.filter((o) => o.paymentMethod === "cash").reduce((s, o) => s + o.total, 0),
   };
   const totalRevenue = byPayment.pix + byPayment.card + byPayment.cash;
-  const supTotal = movements.filter((m) => m.type === "suprimento").reduce((s, m) => s + m.amount, 0);
-  const sanTotal = movements.filter((m) => m.type === "sangria").reduce((s, m) => s + m.amount, 0);
-  const cashInBox = openingBalance + byPayment.cash + supTotal - sanTotal;
+  const supTotal  = movements.filter((m) => m.type === "suprimento").reduce((s, m) => s + m.amount, 0);
+  const sanTotal  = movements.filter((m) => m.type === "sangria").reduce((s, m) => s + m.amount, 0);
+  // cashInBox: cash sales are auto-registered as suprimentos — avoid double counting
+  const manualSup = movements.filter((m) => m.type === "suprimento" && !m.auto).reduce((s, m) => s + m.amount, 0);
+  const cashInBox = openingBalance + byPayment.cash + manualSup - sanTotal;
 
   const duration = openedAt
     ? Math.round((Date.now() - openedAt.getTime()) / 60000)
@@ -293,8 +321,8 @@ function CaixaAberta() {
             {[
               { label: "Receita Total",    value: `R$ ${fmt(totalRevenue)}`,   color: "text-brand-primary" },
               { label: "Dinheiro em Caixa", value: `R$ ${fmt(cashInBox)}`,     color: "text-green-400" },
-              { label: "Pedidos",           value: String(activeOrders.length), color: "text-blue-400" },
-              { label: "Ticket Médio",      value: activeOrders.length > 0 ? `R$ ${fmt(totalRevenue / activeOrders.length)}` : "—", color: "text-yellow-400" },
+              { label: "Pedidos",           value: String(shiftOrders.length), color: "text-blue-400" },
+              { label: "Ticket Médio",      value: shiftOrders.length > 0 ? `R$ ${fmt(totalRevenue / shiftOrders.length)}` : "—", color: "text-yellow-400" },
             ].map((kpi) => (
               <div key={kpi.label} className="bg-neutral-800 border border-neutral-700 rounded-2xl px-5 py-4">
                 <p className="text-xs text-neutral-500 mb-1">{kpi.label}</p>

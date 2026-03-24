@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useCRMStore, CustomerTag } from "@/store/useCRMStore";
+import { useCRMStore, CustomerTag, AddressType } from "@/store/useCRMStore";
 
 const tagConfig: Record<CustomerTag, { label: string; color: string }> = {
   vip:        { label: "VIP",       color: "text-yellow-400 bg-yellow-400/10 border-yellow-400/30" },
@@ -19,12 +19,114 @@ function timeAgo(date: Date) {
   return `${Math.floor(h / 24)}d`;
 }
 
+function NewCustomerModal({ onClose }: { onClose: () => void }) {
+  const addCustomer = useCRMStore((s) => s.addCustomer);
+
+  const [name, setName]           = useState("");
+  const [phone, setPhone]         = useState("");
+  const [street, setStreet]       = useState("");
+  const [neighborhood, setNeighborhood] = useState("");
+  const [number, setNumber]       = useState("");
+  const [type, setType]           = useState<AddressType>("casa");
+  const [complement, setComplement] = useState("");
+
+  function handleSave() {
+    if (!name.trim() || !phone.trim()) return;
+    addCustomer({
+      name:              name.trim(),
+      phone:             phone.trim(),
+      tags:              ["novo"],
+      address:           street.trim(),
+      neighborhood:      neighborhood.trim(),
+      addressNumber:     number.trim(),
+      addressType:       type,
+      addressComplement: complement.trim(),
+    });
+    onClose();
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div className="bg-neutral-800 border border-neutral-700 rounded-2xl w-[380px] shadow-xl overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-700">
+          <h3 className="font-bold text-white text-sm">Novo Cliente</h3>
+          <button onClick={onClose} className="text-neutral-500 hover:text-neutral-300 text-sm">✕</button>
+        </div>
+
+        <div className="px-5 py-4 space-y-3 max-h-[75vh] overflow-y-auto scrollbar-thin">
+          {/* Dados pessoais */}
+          <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider">Dados pessoais</p>
+          <input value={name} onChange={(e) => setName(e.target.value)}
+            placeholder="Nome completo *"
+            className="w-full bg-neutral-700 border border-neutral-600 rounded-xl px-3 py-2.5 text-sm text-white placeholder-neutral-500 outline-none focus:border-brand-primary/60"
+          />
+          <input value={phone} onChange={(e) => setPhone(e.target.value)}
+            placeholder="Telefone / WhatsApp *"
+            className="w-full bg-neutral-700 border border-neutral-600 rounded-xl px-3 py-2.5 text-sm text-white placeholder-neutral-500 outline-none focus:border-brand-primary/60"
+          />
+
+          {/* Endereço */}
+          <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider pt-1">Endereço</p>
+          <input value={street} onChange={(e) => setStreet(e.target.value)}
+            placeholder="Rua, logradouro"
+            className="w-full bg-neutral-700 border border-neutral-600 rounded-xl px-3 py-2.5 text-sm text-white placeholder-neutral-500 outline-none focus:border-brand-primary/60"
+          />
+          <div className="grid grid-cols-2 gap-2">
+            <input value={number} onChange={(e) => setNumber(e.target.value)}
+              placeholder="Nº da residência *"
+              className="w-full bg-neutral-700 border border-neutral-600 rounded-xl px-3 py-2.5 text-sm text-white placeholder-neutral-500 outline-none focus:border-brand-primary/60"
+            />
+            <input value={neighborhood} onChange={(e) => setNeighborhood(e.target.value)}
+              placeholder="Bairro"
+              className="w-full bg-neutral-700 border border-neutral-600 rounded-xl px-3 py-2.5 text-sm text-white placeholder-neutral-500 outline-none focus:border-brand-primary/60"
+            />
+          </div>
+
+          {/* Tipo */}
+          <div className="grid grid-cols-2 gap-2">
+            {(["casa", "apartamento"] as AddressType[]).map((t) => (
+              <button key={t} onClick={() => setType(t)}
+                className={`py-2.5 rounded-xl text-sm font-semibold border transition-all ${
+                  type === t
+                    ? "bg-brand-primary/15 border-brand-primary text-brand-primary"
+                    : "bg-neutral-700 border-neutral-600 text-neutral-400 hover:border-neutral-500"
+                }`}
+              >
+                {t === "casa" ? "🏠 Casa" : "🏢 Apartamento"}
+              </button>
+            ))}
+          </div>
+
+          {type === "apartamento" && (
+            <input value={complement} onChange={(e) => setComplement(e.target.value)}
+              placeholder="Apto, bloco, andar..."
+              className="w-full bg-neutral-700 border border-neutral-600 rounded-xl px-3 py-2.5 text-sm text-white placeholder-neutral-500 outline-none focus:border-brand-primary/60"
+            />
+          )}
+        </div>
+
+        <div className="px-5 py-4 border-t border-neutral-700 flex gap-2">
+          <button onClick={onClose}
+            className="flex-1 py-2.5 rounded-xl text-sm text-neutral-400 border border-neutral-700 hover:border-neutral-600">
+            Cancelar
+          </button>
+          <button onClick={handleSave} disabled={!name.trim() || !phone.trim()}
+            className="flex-1 py-2.5 rounded-xl text-sm font-bold bg-brand-primary hover:bg-brand-secondary disabled:opacity-40 text-white transition-colors">
+            Cadastrar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ContactList() {
-  const customers = useCRMStore((s) => s.customers);
+  const customers  = useCRMStore((s) => s.customers);
   const selectedId = useCRMStore((s) => s.selectedId);
-  const select = useCRMStore((s) => s.select);
-  const [search, setSearch] = useState("");
+  const select     = useCRMStore((s) => s.select);
+  const [search, setSearch]       = useState("");
   const [tagFilter, setTagFilter] = useState<CustomerTag | "all">("all");
+  const [showNew, setShowNew]     = useState(false);
 
   const filtered = customers
     .filter((c) => tagFilter === "all" || c.tags.includes(tagFilter))
@@ -44,6 +146,8 @@ export default function ContactList() {
 
   return (
     <div className="flex flex-col h-full">
+      {showNew && <NewCustomerModal onClose={() => setShowNew(false)} />}
+
       {/* Header */}
       <div className="px-4 py-3 border-b border-neutral-800 shrink-0">
         <div className="flex items-center justify-between mb-3">
@@ -55,7 +159,12 @@ export default function ContactList() {
               </span>
             )}
           </h2>
-          <span className="text-xs text-neutral-500">{customers.length} contatos</span>
+          <button
+            onClick={() => setShowNew(true)}
+            className="text-xs bg-brand-primary hover:bg-brand-secondary text-white font-bold px-2.5 py-1 rounded-lg transition-colors"
+          >
+            + Novo
+          </button>
         </div>
         <div className="relative">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500 text-xs">🔍</span>

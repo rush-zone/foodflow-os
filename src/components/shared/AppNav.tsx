@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useFlowStore } from "@/store/useFlowStore";
 import { useCRMStore } from "@/store/useCRMStore";
+import { useAuthStore } from "@/store/useAuthStore";
+import { useConfigStore, PLAN_LABELS } from "@/store/useConfigStore";
 
 const routes = [
   { href: "/",           label: "PDV",      icon: "🖥️" },
@@ -15,16 +17,21 @@ const routes = [
   { href: "/crm",        label: "CRM",      icon: "💬" },
   { href: "/multiunit",  label: "Rede",     icon: "🏢" },
   { href: "/cardapio",   label: "Cardápio", icon: "🍽️" },
-  { href: "/caixa",      label: "Caixa",    icon: "💰" },
+  { href: "/caixa",         label: "Caixa",    icon: "💰" },
+  { href: "/configuracoes", label: "Config",    icon: "⚙️" },
+  { href: "/loja",          label: "FlowStore", icon: "🛍️" },
 ];
 
 export default function AppNav() {
-  const pathname = usePathname();
-  const orders   = useFlowStore((s) => s.orders);
+  const pathname  = usePathname();
+  const orders    = useFlowStore((s) => s.orders);
   const customers = useCRMStore((s) => s.customers);
+  const operator  = useAuthStore((s) => s.operator);
+  const logout    = useAuthStore((s) => s.logout);
+  const plan      = useConfigStore((s) => s.plan);
 
   const pendingKDS = orders.filter((o) => o.status === "pending").length;
-  const unreadCRM  = customers.reduce((sum, c) => sum + c.unreadCount, 0);
+  const unreadCRM  = customers.reduce((sum, c) => sum + c.unread, 0);
 
   const badges: Record<string, number> = {
     "/kds": pendingKDS,
@@ -67,6 +74,29 @@ export default function AppNav() {
           </Link>
         );
       })}
+
+      {/* Spacer + operator */}
+      <div className="ml-auto flex items-center gap-2 pl-4 border-l border-neutral-800">
+        <span className={`hidden md:inline text-[10px] font-bold px-2 py-0.5 rounded-full ${
+          plan === "enterprise" ? "bg-purple-500/20 text-purple-400" :
+          plan === "growth"     ? "bg-brand-primary/20 text-brand-primary" :
+          plan === "pro"        ? "bg-blue-500/20 text-blue-400" :
+                                  "bg-neutral-700 text-neutral-400"
+        }`}>
+          {PLAN_LABELS[plan]}
+        </span>
+        <div className="hidden md:flex flex-col items-end">
+          <span className="text-xs font-medium text-white leading-none">{operator}</span>
+          <span className="text-[10px] text-neutral-500">operador</span>
+        </div>
+        <button
+          onClick={logout}
+          title="Sair"
+          className="w-8 h-8 rounded-lg bg-neutral-800 hover:bg-red-500/20 hover:text-red-400 text-neutral-500 flex items-center justify-center transition-all text-sm"
+        >
+          ⏻
+        </button>
+      </div>
     </nav>
   );
 }

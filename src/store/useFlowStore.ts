@@ -1,4 +1,6 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import { makePersistStorage } from "@/lib/storage";
 
 export type FlowStatus =
   | "pending"     // confirmado no PDV, aguardando cozinha
@@ -175,7 +177,7 @@ interface FlowStore {
 
 const deliveryFlow: FlowStatus[] = ["ready", "picked_up", "on_the_way", "delivered"];
 
-export const useFlowStore = create<FlowStore>((set, get) => ({
+export const useFlowStore = create<FlowStore>()(persist((set, get) => ({
   orders: seedOrders,
   motoboys,
   availableMotoboys,
@@ -258,4 +260,19 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
           : o
       ),
     }),
+}), {
+  name: "foodflow-orders",
+  storage: makePersistStorage<FlowStore>(),
+  partialize: (state) => ({
+    orders: state.orders,
+    availableMotoboys: Array.from(state.availableMotoboys) as unknown as Set<string>,
+  }),
+  merge: (persisted, current) => {
+    const p = persisted as { orders: FlowOrder[]; availableMotoboys: string[] };
+    return {
+      ...current,
+      orders: p.orders ?? current.orders,
+      availableMotoboys: new Set<string>(p.availableMotoboys ?? []),
+    };
+  },
 }));

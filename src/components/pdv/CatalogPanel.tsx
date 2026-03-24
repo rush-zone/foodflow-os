@@ -1,18 +1,20 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { products, categories } from "@/data/products";
-import { Product } from "@/types";
+import { useMenuStore } from "@/store/useMenuStore";
 import CategoryTabs from "./CategoryTabs";
 import SearchBar from "./SearchBar";
 import ProductCard from "./ProductCard";
 
 export default function CatalogPanel() {
+  const products   = useMenuStore((s) => s.products);
+  const categories = useMenuStore((s) => s.categories);
   const [activeCategory, setActiveCategory] = useState("all");
   const [search, setSearch] = useState("");
 
   const filtered = useMemo(() => {
     return products.filter((p) => {
+      if (!p.available) return false;
       const matchCategory =
         activeCategory === "all" || p.category === activeCategory;
       const matchSearch =
@@ -20,7 +22,7 @@ export default function CatalogPanel() {
         p.name.toLowerCase().includes(search.toLowerCase());
       return matchCategory && matchSearch;
     });
-  }, [activeCategory, search]);
+  }, [products, activeCategory, search]);
 
   return (
     <div className="flex flex-col h-full">

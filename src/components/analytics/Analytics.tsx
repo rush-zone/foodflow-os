@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import { useFlowStore, FlowOrder } from "@/store/useFlowStore";
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, PieChart, Pie, Cell,
@@ -8,146 +9,157 @@ import {
 
 type Period = "Hoje" | "Semana" | "Mês";
 
-// ─── Mock data per period ──────────────────────────────────────────────────────
-const DATA: Record<Period, {
-  revenueData: { day: string; revenue: number; orders: number }[];
-  hourlyData:  { hour: string; orders: number }[];
-  topProducts: { name: string; qty: number; revenue: number }[];
-  channelData: { name: string; value: number; color: string }[];
-  paymentData: { name: string; value: number; color: string }[];
-  kpis: { label: string; value: string; delta: string; positive: boolean; icon: string }[];
-}> = {
-  Hoje: {
-    revenueData: [
-      { day: "11h", revenue: 120,  orders: 2  },
-      { day: "12h", revenue: 430,  orders: 7  },
-      { day: "13h", revenue: 680,  orders: 11 },
-      { day: "14h", revenue: 310,  orders: 5  },
-      { day: "15h", revenue: 180,  orders: 3  },
-      { day: "18h", revenue: 540,  orders: 8  },
-      { day: "19h", revenue: 890,  orders: 13 },
-      { day: "20h", revenue: 1050, orders: 16 },
-    ],
-    hourlyData: [
-      { hour: "11h", orders: 2 }, { hour: "12h", orders: 7 },
-      { hour: "13h", orders: 11 }, { hour: "14h", orders: 5 },
-      { hour: "15h", orders: 3 }, { hour: "18h", orders: 8 },
-      { hour: "19h", orders: 13 }, { hour: "20h", orders: 16 },
-    ],
-    topProducts: [
-      { name: "Double Smash",           qty: 16, revenue: 638.4 },
-      { name: "Pizza Pepperoni",        qty: 11, revenue: 572.0 },
-      { name: "Smash Burger Clássico",  qty: 18, revenue: 520.2 },
-      { name: "Chicken Crispy",         qty: 9,  revenue: 242.1 },
-      { name: "Batata Frita G",         qty: 13, revenue: 323.7 },
-      { name: "Milkshake",              qty: 8,  revenue: 135.2 },
-    ],
-    channelData: [
-      { name: "Delivery", value: 55, color: "#FF5A1F" },
-      { name: "Local",    value: 30, color: "#6366F1" },
-      { name: "Takeaway", value: 15, color: "#22D3EE" },
-    ],
-    paymentData: [
-      { name: "PIX",      value: 52, color: "#10B981" },
-      { name: "Cartão",   value: 35, color: "#6366F1" },
-      { name: "Dinheiro", value: 13, color: "#F59E0B" },
-    ],
-    kpis: [
-      { label: "Receita Hoje",      value: "R$ 4.200",  delta: "+8%",   positive: true,  icon: "💰" },
-      { label: "Pedidos Hoje",      value: "65",         delta: "+5%",   positive: true,  icon: "📋" },
-      { label: "Ticket Médio",      value: "R$ 64,61",   delta: "+3%",   positive: true,  icon: "🎯" },
-      { label: "Tempo Médio KDS",   value: "13min",      delta: "-1min", positive: true,  icon: "⏱️" },
-      { label: "Taxa Cancelamento", value: "2,8%",       delta: "-0,3%", positive: true,  icon: "❌" },
-      { label: "Avaliação Média",   value: "4,9 ⭐",     delta: "+0,1",  positive: true,  icon: "⭐" },
-    ],
-  },
-  Semana: {
-    revenueData: [
-      { day: "Seg", revenue: 1240, orders: 18 },
-      { day: "Ter", revenue: 980,  orders: 14 },
-      { day: "Qua", revenue: 1560, orders: 22 },
-      { day: "Qui", revenue: 1890, orders: 27 },
-      { day: "Sex", revenue: 2340, orders: 34 },
-      { day: "Sáb", revenue: 3100, orders: 45 },
-      { day: "Dom", revenue: 2750, orders: 39 },
-    ],
-    hourlyData: [
-      { hour: "11h", orders: 3 }, { hour: "12h", orders: 12 },
-      { hour: "13h", orders: 18 }, { hour: "14h", orders: 9 },
-      { hour: "15h", orders: 5 }, { hour: "18h", orders: 14 },
-      { hour: "19h", orders: 22 }, { hour: "20h", orders: 28 },
-      { hour: "21h", orders: 24 }, { hour: "22h", orders: 15 },
-    ],
-    topProducts: [
-      { name: "Double Smash",           qty: 87,  revenue: 3471.3 },
-      { name: "Pizza Pepperoni",        qty: 64,  revenue: 3328.0 },
-      { name: "Smash Burger Clássico",  qty: 103, revenue: 2976.7 },
-      { name: "Chicken Crispy",         qty: 59,  revenue: 1587.1 },
-      { name: "Batata Frita G",         qty: 78,  revenue: 1942.2 },
-      { name: "Milkshake",              qty: 52,  revenue: 878.8  },
-    ],
-    channelData: [
-      { name: "Delivery", value: 52, color: "#FF5A1F" },
-      { name: "Local",    value: 33, color: "#6366F1" },
-      { name: "Takeaway", value: 15, color: "#22D3EE" },
-    ],
-    paymentData: [
-      { name: "PIX",      value: 48, color: "#10B981" },
-      { name: "Cartão",   value: 38, color: "#6366F1" },
-      { name: "Dinheiro", value: 14, color: "#F59E0B" },
-    ],
-    kpis: [
-      { label: "Receita Semanal",   value: "R$ 13.860", delta: "+18%",  positive: true,  icon: "💰" },
-      { label: "Pedidos Semana",    value: "199",        delta: "+12%",  positive: true,  icon: "📋" },
-      { label: "Ticket Médio",      value: "R$ 69,65",   delta: "+5%",   positive: true,  icon: "🎯" },
-      { label: "Tempo Médio KDS",   value: "14min",      delta: "-2min", positive: true,  icon: "⏱️" },
-      { label: "Taxa Cancelamento", value: "3,2%",       delta: "+0,5%", positive: false, icon: "❌" },
-      { label: "Avaliação Média",   value: "4,8 ⭐",     delta: "+0,1",  positive: true,  icon: "⭐" },
-    ],
-  },
-  Mês: {
-    revenueData: [
-      { day: "S1",  revenue: 13860, orders: 199 },
-      { day: "S2",  revenue: 15200, orders: 218 },
-      { day: "S3",  revenue: 14100, orders: 204 },
-      { day: "S4",  revenue: 17400, orders: 251 },
-    ],
-    hourlyData: [
-      { hour: "11h", orders: 12 }, { hour: "12h", orders: 48 },
-      { hour: "13h", orders: 72 }, { hour: "14h", orders: 38 },
-      { hour: "15h", orders: 20 }, { hour: "18h", orders: 55 },
-      { hour: "19h", orders: 88 }, { hour: "20h", orders: 110 },
-      { hour: "21h", orders: 96 }, { hour: "22h", orders: 60 },
-    ],
-    topProducts: [
-      { name: "Double Smash",           qty: 348, revenue: 13891.2 },
-      { name: "Pizza Pepperoni",        qty: 256, revenue: 13312.0 },
-      { name: "Smash Burger Clássico",  qty: 412, revenue: 11906.8 },
-      { name: "Chicken Crispy",         qty: 236, revenue: 6348.4  },
-      { name: "Batata Frita G",         qty: 312, revenue: 7768.8  },
-      { name: "Milkshake",              qty: 208, revenue: 3515.2  },
-    ],
-    channelData: [
-      { name: "Delivery", value: 50, color: "#FF5A1F" },
-      { name: "Local",    value: 35, color: "#6366F1" },
-      { name: "Takeaway", value: 15, color: "#22D3EE" },
-    ],
-    paymentData: [
-      { name: "PIX",      value: 51, color: "#10B981" },
-      { name: "Cartão",   value: 36, color: "#6366F1" },
-      { name: "Dinheiro", value: 13, color: "#F59E0B" },
-    ],
-    kpis: [
-      { label: "Receita do Mês",    value: "R$ 60.560", delta: "+22%",  positive: true,  icon: "💰" },
-      { label: "Pedidos no Mês",    value: "872",        delta: "+15%",  positive: true,  icon: "📋" },
-      { label: "Ticket Médio",      value: "R$ 69,45",   delta: "+4%",   positive: true,  icon: "🎯" },
-      { label: "Tempo Médio KDS",   value: "14min",      delta: "-3min", positive: true,  icon: "⏱️" },
-      { label: "Taxa Cancelamento", value: "2,9%",       delta: "-0,8%", positive: true,  icon: "❌" },
-      { label: "Avaliação Média",   value: "4,8 ⭐",     delta: "+0,2",  positive: true,  icon: "⭐" },
-    ],
-  },
-};
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function startOfDay(ts: number) {
+  const d = new Date(ts);
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+}
 
+function deltaPct(cur: number, prev: number): { text: string; positive: boolean } {
+  if (prev === 0) return { text: cur > 0 ? "+100%" : "—", positive: cur >= 0 };
+  const p = ((cur - prev) / prev) * 100;
+  return { text: `${p >= 0 ? "+" : ""}${p.toFixed(0)}%`, positive: p >= 0 };
+}
+
+function fmt(v: number) {
+  return v.toFixed(2).replace(".", ",");
+}
+
+// ─── Hook: derive all chart data from real orders ─────────────────────────────
+function useDerivedAnalytics(period: Period) {
+  const orders = useFlowStore((s) => s.orders);
+
+  return useMemo(() => {
+    const now = Date.now();
+    const SOD = startOfDay(now);
+
+    // Current and previous window bounds
+    const curStart  = period === "Hoje"   ? SOD
+                    : period === "Semana" ? now - 7  * 86400000
+                    :                       now - 30 * 86400000;
+    const prevStart = period === "Hoje"   ? SOD - 86400000
+                    : period === "Semana" ? now - 14 * 86400000
+                    :                       now - 60 * 86400000;
+    const prevEnd   = curStart;
+
+    const cur  = orders.filter((o) => o.createdAt.getTime() >= curStart  && o.status !== "cancelled");
+    const prev = orders.filter((o) => o.createdAt.getTime() >= prevStart && o.createdAt.getTime() < prevEnd && o.status !== "cancelled");
+
+    // ── KPIs ──────────────────────────────────────────────────────────────────
+    const revenue     = cur.reduce((s, o) => s + o.total, 0);
+    const prevRevenue = prev.reduce((s, o) => s + o.total, 0);
+    const count       = cur.length;
+    const prevCount   = prev.length;
+    const avgTicket   = count > 0 ? revenue / count : 0;
+    const prevAvg     = prevCount > 0 ? prevRevenue / prevCount : 0;
+    const allCur      = orders.filter((o) => o.createdAt.getTime() >= curStart);
+    const cancelCount = allCur.filter((o) => o.status === "cancelled").length;
+    const cancelRate  = allCur.length > 0 ? (cancelCount / allCur.length) * 100 : 0;
+
+    const revDelta = deltaPct(revenue, prevRevenue);
+    const cntDelta = deltaPct(count,   prevCount);
+    const avgDelta = deltaPct(avgTicket, prevAvg);
+
+    const periodLabel = period === "Hoje" ? "Hoje" : period === "Semana" ? "Semanal" : "do Mês";
+
+    const kpis = [
+      { label: `Receita ${periodLabel}`,   value: `R$ ${revenue.toFixed(0)}`,          delta: revDelta.text, positive: revDelta.positive, icon: "💰" },
+      { label: `Pedidos ${periodLabel}`,   value: String(count),                         delta: cntDelta.text, positive: cntDelta.positive, icon: "📋" },
+      { label: "Ticket Médio",             value: `R$ ${fmt(avgTicket)}`,                delta: avgDelta.text, positive: avgDelta.positive, icon: "🎯" },
+      { label: "Cancelamentos",            value: `${cancelRate.toFixed(1)}%`,           delta: "—",           positive: cancelRate < 5,    icon: "❌" },
+      { label: "Delivery / Total",         value: `${count > 0 ? Math.round(cur.filter((o) => o.type === "delivery").length / count * 100) : 0}%`, delta: "—", positive: true, icon: "🏍️" },
+      { label: "Avaliação Média",          value: "4,9 ⭐",                              delta: "—",           positive: true,              icon: "⭐" },
+    ];
+
+    // ── Revenue chart ─────────────────────────────────────────────────────────
+    const DAY_NAMES = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+
+    function bucket<K extends string>(
+      rows: FlowOrder[],
+      keyFn: (o: FlowOrder) => K,
+      sortFn?: (a: K, b: K) => number,
+    ): { day: string; revenue: number; orders: number }[] {
+      const map: Record<string, { revenue: number; orders: number }> = {};
+      rows.forEach((o) => {
+        const k = keyFn(o);
+        if (!map[k]) map[k] = { revenue: 0, orders: 0 };
+        map[k].revenue += o.total;
+        map[k].orders  += 1;
+      });
+      const entries = Object.entries(map) as [K, { revenue: number; orders: number }][];
+      if (sortFn) entries.sort((a, b) => sortFn(a[0], b[0]));
+      return entries.map(([k, v]) => ({ day: k, ...v }));
+    }
+
+    let revenueData;
+    if (period === "Hoje") {
+      revenueData = bucket(cur, (o) => `${o.createdAt.getHours()}h` as string,
+        (a, b) => parseInt(a) - parseInt(b));
+    } else if (period === "Semana") {
+      revenueData = bucket(cur, (o) => DAY_NAMES[o.createdAt.getDay()]);
+    } else {
+      revenueData = bucket(cur, (o) => {
+        const weeksAgo = Math.floor((now - o.createdAt.getTime()) / (7 * 86400000));
+        return weeksAgo === 0 ? "Esta sem." : `Sem. -${weeksAgo}`;
+      });
+    }
+
+    if (revenueData.length === 0) {
+      revenueData = [{ day: "—", revenue: 0, orders: 0 }];
+    }
+
+    // ── Hourly distribution ────────────────────────────────────────────────────
+    const hourMap: Record<number, number> = {};
+    cur.forEach((o) => {
+      const h = o.createdAt.getHours();
+      hourMap[h] = (hourMap[h] ?? 0) + 1;
+    });
+    const hourlyData = Object.entries(hourMap)
+      .sort((a, b) => Number(a[0]) - Number(b[0]))
+      .map(([h, orders]) => ({ hour: `${h}h`, orders }));
+
+    // ── Top products ──────────────────────────────────────────────────────────
+    const prodMap: Record<string, { qty: number; revenue: number }> = {};
+    cur.forEach((o) => {
+      o.items.forEach((item) => {
+        if (!prodMap[item.name]) prodMap[item.name] = { qty: 0, revenue: 0 };
+        prodMap[item.name].qty     += item.quantity;
+        prodMap[item.name].revenue += item.quantity * item.price;
+      });
+    });
+    const topProducts = Object.entries(prodMap)
+      .map(([name, v]) => ({ name, ...v }))
+      .sort((a, b) => b.qty - a.qty)
+      .slice(0, 6);
+
+    // ── Channel & payment pies ────────────────────────────────────────────────
+    const total = cur.length || 1;
+
+    const CHAN_COLOR: Record<string, string> = { delivery: "#FF5A1F", local: "#6366F1", takeaway: "#22D3EE" };
+    const CHAN_LABEL: Record<string, string> = { delivery: "Delivery", local: "Local", takeaway: "Takeaway" };
+    const chanMap: Record<string, number> = {};
+    cur.forEach((o) => { chanMap[o.type] = (chanMap[o.type] ?? 0) + 1; });
+    const channelData = Object.entries(chanMap).map(([t, n]) => ({
+      name: CHAN_LABEL[t] ?? t,
+      value: Math.round((n / total) * 100),
+      color: CHAN_COLOR[t] ?? "#888",
+    }));
+
+    const PAY_COLOR: Record<string, string> = { pix: "#10B981", card: "#6366F1", cash: "#F59E0B" };
+    const PAY_LABEL: Record<string, string> = { pix: "PIX", card: "Cartão", cash: "Dinheiro" };
+    const payMap: Record<string, number> = {};
+    cur.forEach((o) => { payMap[o.paymentMethod] = (payMap[o.paymentMethod] ?? 0) + 1; });
+    const paymentData = Object.entries(payMap).map(([m, n]) => ({
+      name: PAY_LABEL[m] ?? m,
+      value: Math.round((n / total) * 100),
+      color: PAY_COLOR[m] ?? "#888",
+    }));
+
+    return { kpis, revenueData, hourlyData, topProducts, channelData, paymentData };
+  }, [orders, period]);
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
 const tooltipStyle = {
   backgroundColor: "#1F2937",
   border: "1px solid #374151",
@@ -157,13 +169,16 @@ const tooltipStyle = {
 };
 
 export default function Analytics() {
-  const [period, setPeriod] = useState<Period>("Semana");
-  const d = DATA[period];
+  const [period, setPeriod] = useState<Period>("Hoje");
+  const d = useDerivedAnalytics(period);
 
   return (
     <div className="flex flex-col h-full bg-neutral-900 overflow-hidden">
       {/* Header */}
-      <header className="flex items-center justify-end px-6 py-2 border-b border-neutral-800 shrink-0">
+      <header className="flex items-center justify-between px-6 py-2 border-b border-neutral-800 shrink-0">
+        <span className="text-xs text-green-400 font-medium bg-green-400/10 px-2 py-1 rounded-full">
+          ● dados em tempo real
+        </span>
         <div className="flex gap-2">
           {(["Hoje", "Semana", "Mês"] as Period[]).map((p) => (
             <button
@@ -183,6 +198,7 @@ export default function Analytics() {
 
       <div className="flex-1 overflow-y-auto scrollbar-thin">
         <div className="p-6 space-y-6">
+
           {/* KPIs */}
           <div className="grid grid-cols-6 gap-3">
             {d.kpis.map((kpi) => (
@@ -190,7 +206,11 @@ export default function Analytics() {
                 <div className="flex items-start justify-between mb-2">
                   <span className="text-lg">{kpi.icon}</span>
                   <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full ${
-                    kpi.positive ? "text-green-400 bg-green-400/10" : "text-red-400 bg-red-400/10"
+                    kpi.delta === "—"
+                      ? "text-neutral-500 bg-neutral-700"
+                      : kpi.positive
+                        ? "text-green-400 bg-green-400/10"
+                        : "text-red-400 bg-red-400/10"
                   }`}>
                     {kpi.delta}
                   </span>
@@ -226,15 +246,19 @@ export default function Analytics() {
 
             <div className="bg-neutral-800 border border-neutral-700 rounded-2xl p-5">
               <h3 className="text-sm font-bold text-neutral-100 mb-4">Pedidos por Hora</h3>
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={d.hourlyData} barSize={10}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" vertical={false} />
-                  <XAxis dataKey="hour" tick={{ fill: "#6B7280", fontSize: 10 }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fill: "#6B7280", fontSize: 10 }} axisLine={false} tickLine={false} />
-                  <Tooltip contentStyle={tooltipStyle} />
-                  <Bar dataKey="orders" fill="#6366F1" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+              {d.hourlyData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={d.hourlyData} barSize={10}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" vertical={false} />
+                    <XAxis dataKey="hour" tick={{ fill: "#6B7280", fontSize: 10 }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fill: "#6B7280", fontSize: 10 }} axisLine={false} tickLine={false} />
+                    <Tooltip contentStyle={tooltipStyle} />
+                    <Bar dataKey="orders" fill="#6366F1" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-[200px] text-neutral-600 text-sm">Sem dados</div>
+              )}
             </div>
           </div>
 
@@ -242,73 +266,90 @@ export default function Analytics() {
           <div className="grid grid-cols-3 gap-4">
             <div className="col-span-1 bg-neutral-800 border border-neutral-700 rounded-2xl p-5">
               <h3 className="text-sm font-bold text-neutral-100 mb-4">Top Produtos</h3>
-              <div className="space-y-3">
-                {d.topProducts.map((p, i) => {
-                  const maxQty = d.topProducts[0].qty;
-                  return (
-                    <div key={p.name}>
-                      <div className="flex items-center justify-between mb-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-neutral-500 w-4">{i + 1}</span>
-                          <span className="text-xs text-neutral-200 truncate max-w-[130px]">{p.name}</span>
+              {d.topProducts.length > 0 ? (
+                <div className="space-y-3">
+                  {d.topProducts.map((p, i) => {
+                    const maxQty = d.topProducts[0].qty;
+                    return (
+                      <div key={p.name}>
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-neutral-500 w-4">{i + 1}</span>
+                            <span className="text-xs text-neutral-200 truncate max-w-[130px]">{p.name}</span>
+                          </div>
+                          <span className="text-xs font-bold text-neutral-400">{p.qty}×</span>
                         </div>
-                        <span className="text-xs font-bold text-neutral-400">{p.qty}×</span>
+                        <div className="h-1 bg-neutral-700 rounded-full overflow-hidden">
+                          <div className="h-full bg-brand-primary rounded-full" style={{ width: `${(p.qty / maxQty) * 100}%` }} />
+                        </div>
                       </div>
-                      <div className="h-1 bg-neutral-700 rounded-full overflow-hidden">
-                        <div className="h-full bg-brand-primary rounded-full" style={{ width: `${(p.qty / maxQty) * 100}%` }} />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-32 text-neutral-600 text-sm">Sem dados</div>
+              )}
             </div>
 
             <div className="bg-neutral-800 border border-neutral-700 rounded-2xl p-5">
               <h3 className="text-sm font-bold text-neutral-100 mb-4">Canal de Venda</h3>
-              <ResponsiveContainer width="100%" height={150}>
-                <PieChart>
-                  <Pie data={d.channelData} cx="50%" cy="50%" innerRadius={40} outerRadius={65} paddingAngle={3} dataKey="value">
-                    {d.channelData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
-                  </Pie>
-                  <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [`${v}%`, ""]} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="flex flex-col gap-1.5 mt-2">
-                {d.channelData.map((item) => (
-                  <div key={item.name} className="flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
-                      <span className="text-neutral-400">{item.name}</span>
-                    </div>
-                    <span className="font-bold text-neutral-300">{item.value}%</span>
+              {d.channelData.length > 0 ? (
+                <>
+                  <ResponsiveContainer width="100%" height={150}>
+                    <PieChart>
+                      <Pie data={d.channelData} cx="50%" cy="50%" innerRadius={40} outerRadius={65} paddingAngle={3} dataKey="value">
+                        {d.channelData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                      </Pie>
+                      <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [`${v}%`, ""]} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="flex flex-col gap-1.5 mt-2">
+                    {d.channelData.map((item) => (
+                      <div key={item.name} className="flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
+                          <span className="text-neutral-400">{item.name}</span>
+                        </div>
+                        <span className="font-bold text-neutral-300">{item.value}%</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </>
+              ) : (
+                <div className="flex items-center justify-center h-32 text-neutral-600 text-sm">Sem dados</div>
+              )}
             </div>
 
             <div className="bg-neutral-800 border border-neutral-700 rounded-2xl p-5">
               <h3 className="text-sm font-bold text-neutral-100 mb-4">Forma de Pagamento</h3>
-              <ResponsiveContainer width="100%" height={150}>
-                <PieChart>
-                  <Pie data={d.paymentData} cx="50%" cy="50%" innerRadius={40} outerRadius={65} paddingAngle={3} dataKey="value">
-                    {d.paymentData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
-                  </Pie>
-                  <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [`${v}%`, ""]} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="flex flex-col gap-1.5 mt-2">
-                {d.paymentData.map((item) => (
-                  <div key={item.name} className="flex items-center justify-between text-xs">
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
-                      <span className="text-neutral-400">{item.name}</span>
-                    </div>
-                    <span className="font-bold text-neutral-300">{item.value}%</span>
+              {d.paymentData.length > 0 ? (
+                <>
+                  <ResponsiveContainer width="100%" height={150}>
+                    <PieChart>
+                      <Pie data={d.paymentData} cx="50%" cy="50%" innerRadius={40} outerRadius={65} paddingAngle={3} dataKey="value">
+                        {d.paymentData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                      </Pie>
+                      <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => [`${v}%`, ""]} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="flex flex-col gap-1.5 mt-2">
+                    {d.paymentData.map((item) => (
+                      <div key={item.name} className="flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
+                          <span className="text-neutral-400">{item.name}</span>
+                        </div>
+                        <span className="font-bold text-neutral-300">{item.value}%</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </>
+              ) : (
+                <div className="flex items-center justify-center h-32 text-neutral-600 text-sm">Sem dados</div>
+              )}
             </div>
           </div>
+
         </div>
       </div>
     </div>

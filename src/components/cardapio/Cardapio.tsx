@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { useMenuStore } from "@/store/useMenuStore";
-import { Product } from "@/types";
+import { useEstoqueStore } from "@/store/useEstoqueStore";
+import { Product, ProductExtra, StockLink } from "@/types";
+import { toast } from "@/store/useToastStore";
 
 function fmt(v: number) {
   return v.toFixed(2).replace(".", ",");
@@ -19,22 +21,69 @@ function ProductModal({
   const { categories, addProduct, updateProduct } = useMenuStore();
   const cats = categories.filter((c) => c.id !== "all");
 
-  const [name, setName]         = useState(product?.name ?? "");
-  const [desc, setDesc]         = useState(product?.description ?? "");
-  const [price, setPrice]       = useState(product ? fmt(product.price) : "");
-  const [image, setImage]       = useState(product?.image ?? "");
-  const [category, setCategory] = useState(product?.category ?? cats[0]?.id ?? "");
+  const [name, setName]           = useState(product?.name ?? "");
+  const [desc, setDesc]           = useState(product?.description ?? "");
+  const [price, setPrice]         = useState(product ? fmt(product.price) : "");
+  const [image, setImage]         = useState(product?.image ?? "");
+  const [category, setCategory]   = useState(product?.category ?? cats[0]?.id ?? "");
   const [available, setAvailable] = useState(product?.available ?? true);
-  const [popular, setPopular]   = useState(product?.popular ?? false);
+  const [popular, setPopular]     = useState(product?.popular ?? false);
+  const stockItems = useEstoqueStore((s) => s.items);
+
+  const [extras, setExtras]           = useState<ProductExtra[]>(product?.extras ?? []);
+  const [extraName, setExtraName]     = useState("");
+  const [extraPrice, setExtraPrice]   = useState("");
+  const [expandedId, setExpandedId]   = useState<string | null>(null);
+  const [linkStockId, setLinkStockId] = useState("");
+  const [linkQty, setLinkQty]         = useState("");
+
+  function addExtra() {
+    if (!extraName.trim()) return;
+    const p = parseFloat(extraPrice.replace(",", ".")) || 0;
+    setExtras([...extras, { id: `x-${Date.now()}`, name: extraName.trim(), price: p }]);
+    setExtraName("");
+    setExtraPrice("");
+  }
+
+  function removeExtra(id: string) {
+    setExtras(extras.filter((e) => e.id !== id));
+    if (expandedId === id) setExpandedId(null);
+  }
+
+  function addStockLink(extraId: string) {
+    if (!linkStockId || !linkQty) return;
+    const qty = parseFloat(linkQty.replace(",", "."));
+    if (!qty) return;
+    setExtras(extras.map((e) =>
+      e.id === extraId
+        ? { ...e, stockLinks: [...(e.stockLinks ?? []), { stockId: linkStockId, qty }] }
+        : e
+    ));
+    setLinkStockId("");
+    setLinkQty("");
+  }
+
+  function removeStockLink(extraId: string, stockId: string) {
+    setExtras(extras.map((e) =>
+      e.id === extraId
+        ? { ...e, stockLinks: (e.stockLinks ?? []).filter((l) => l.stockId !== stockId) }
+        : e
+    ));
+  }
 
   function handleSave() {
     const priceVal = parseFloat(price.replace(",", "."));
     if (!name.trim() || !priceVal) return;
-    const data = { name: name.trim(), description: desc.trim(), price: priceVal, image: image.trim(), category, available, popular };
+    const data = {
+      name: name.trim(), description: desc.trim(), price: priceVal,
+      image: image.trim(), category, available, popular, extras,
+    };
     if (product) {
       updateProduct(product.id, data);
+      toast.success("Produto atualizado", name.trim());
     } else {
       addProduct(data);
+      toast.success("Produto adicionado", name.trim());
     }
     onClose();
   }
@@ -50,8 +99,17 @@ function ProductModal({
         <div className="px-6 py-5 space-y-4 max-h-[70vh] overflow-y-auto scrollbar-thin">
           {/* Preview */}
           {image && (
-            <div className="w-full h-32 rounded-xl overflow-hidden bg-neutral-700">
-              <img src={image} alt="" className="w-full h-full object-cover" />
+            <div className="w-full h-32 rounded-xl overflow-hidden bg-neutral-700 flex items-center justify-center">
+              <img
+                src={image}
+                alt=""
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).style.display = "none";
+                  (e.currentTarget.parentElement as HTMLElement).innerHTML =
+                    '<span class="text-4xl">🖼️</span><span class="text-xs text-neutral-500 ml-2">URL inválida</span>';
+                }}
+              />
             </div>
           )}
 
@@ -93,6 +151,124 @@ function ProductModal({
             </div>
           </div>
 
+          {/* ── Extras / Adicionais ── */}
+          <div>
+            <p className="text-xs text-neutral-500 mb-2 font-medium">Adicionais (opcionais para o cliente)</p>
+
+            {extras.length > 0 && (
+              <div className="space-y-1.5 mb-2">
+                {extras.map((extra) => (
+                  <div key={extra.id} className="rounded-xl border border-neutral-600 overflow-hidden">
+                    {/* Extra header row */}
+                    <div className="flex items-center justify-between bg-neutral-700 px-3 py-2.5 gap-2">
+                      <span className="text-sm text-white flex-1">{extra.name}</span>
+                      <span className="text-sm font-medium text-brand-primary shrink-0">
+                        {extra.price === 0 ? "Grátis" : `R$ ${fmt(extra.price)}`}
+                      </span>
+                      <button
+                        onClick={() => setExpandedId(expandedId === extra.id ? null : extra.id)}
+                        title="Vincular ao estoque"
+                        className={`text-xs px-2 py-1 rounded-lg transition-colors shrink-0 ${
+                          expandedId === extra.id
+                            ? "bg-brand-primary/20 text-brand-primary"
+                            : "bg-neutral-600 text-neutral-400 hover:text-white"
+                        }`}
+                      >
+                        🔗 {(extra.stockLinks ?? []).length > 0 ? extra.stockLinks!.length : "Estoque"}
+                      </button>
+                      <button
+                        onClick={() => removeExtra(extra.id)}
+                        className="text-neutral-500 hover:text-red-400 transition-colors text-sm shrink-0"
+                      >
+                        ✕
+                      </button>
+                    </div>
+
+                    {/* Stock links panel */}
+                    {expandedId === extra.id && (
+                      <div className="bg-neutral-800 px-3 py-2.5 space-y-2">
+                        {/* Existing links */}
+                        {(extra.stockLinks ?? []).map((link) => {
+                          const item = stockItems.find((s) => s.id === link.stockId);
+                          return (
+                            <div key={link.stockId} className="flex items-center justify-between text-xs">
+                              <span className="text-neutral-300">
+                                {item?.name ?? link.stockId}
+                              </span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-neutral-500">
+                                  {link.qty} {item?.unit ?? "un"}
+                                </span>
+                                <button
+                                  onClick={() => removeStockLink(extra.id, link.stockId)}
+                                  className="text-neutral-600 hover:text-red-400 transition-colors"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+
+                        {/* Add stock link */}
+                        <div className="flex gap-1.5 pt-1 border-t border-neutral-700">
+                          <select
+                            value={linkStockId}
+                            onChange={(e) => setLinkStockId(e.target.value)}
+                            className="flex-1 bg-neutral-700 border border-neutral-600 rounded-lg px-2 py-1.5 text-xs text-white outline-none focus:border-brand-primary/60"
+                          >
+                            <option value="">Selecionar insumo…</option>
+                            {stockItems.map((s) => (
+                              <option key={s.id} value={s.id}>
+                                {s.name} ({s.unit})
+                              </option>
+                            ))}
+                          </select>
+                          <input
+                            value={linkQty}
+                            onChange={(e) => setLinkQty(e.target.value)}
+                            placeholder="Qtd"
+                            className="w-16 bg-neutral-700 border border-neutral-600 rounded-lg px-2 py-1.5 text-xs text-white outline-none focus:border-brand-primary/60"
+                          />
+                          <button
+                            onClick={() => addStockLink(extra.id)}
+                            className="px-2.5 py-1.5 bg-neutral-700 hover:bg-neutral-600 text-white rounded-lg text-xs font-bold transition-colors"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Add new extra */}
+            <div className="flex gap-2">
+              <input
+                value={extraName}
+                onChange={(e) => setExtraName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && addExtra()}
+                placeholder="Nome do adicional"
+                className="flex-1 bg-neutral-700 border border-neutral-600 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-brand-primary/60"
+              />
+              <input
+                value={extraPrice}
+                onChange={(e) => setExtraPrice(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && addExtra()}
+                placeholder="R$ 0,00"
+                className="w-24 bg-neutral-700 border border-neutral-600 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-brand-primary/60"
+              />
+              <button
+                onClick={addExtra}
+                className="px-4 py-2 bg-neutral-700 hover:bg-neutral-600 border border-neutral-600 text-white rounded-xl text-sm font-bold transition-colors"
+              >
+                +
+              </button>
+            </div>
+          </div>
+
           <div className="flex gap-4">
             {[
               { label: "Disponível",     val: available, set: setAvailable },
@@ -128,10 +304,27 @@ function ProductModal({
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function Cardapio() {
-  const { products, categories, toggleAvailability, togglePopular, deleteProduct } = useMenuStore();
+  const { products, categories, toggleAvailability: _toggleAvail, togglePopular: _togglePop, deleteProduct: _delete } = useMenuStore();
   const [selectedCat, setSelectedCat] = useState("all");
   const [search, setSearch]           = useState("");
   const [editing, setEditing]         = useState<Product | null | "new">(null);
+
+  function toggleAvailability(id: string) {
+    const p = products.find((x) => x.id === id);
+    _toggleAvail(id);
+    if (p) toast.info(p.available ? `${p.name} desativado` : `${p.name} ativado`);
+  }
+  function togglePopular(id: string) {
+    const p = products.find((x) => x.id === id);
+    _togglePop(id);
+    if (p) toast.info(p.popular ? `${p.name} removido dos populares` : `${p.name} marcado como popular`);
+  }
+  function deleteProduct(id: string) {
+    const p = products.find((x) => x.id === id);
+    if (!confirm(`Excluir "${p?.name}"?`)) return;
+    _delete(id);
+    if (p) toast.warning("Produto excluído", p.name);
+  }
 
   const filtered = products.filter((p) => {
     const matchCat  = selectedCat === "all" || p.category === selectedCat;
@@ -229,6 +422,11 @@ export default function Cardapio() {
                       ⭐ Destaque
                     </span>
                   )}
+                  {(product.extras ?? []).length > 0 && (
+                    <span className="absolute top-2 right-2 text-[10px] bg-neutral-900/80 text-neutral-400 px-1.5 py-0.5 rounded-full font-medium">
+                      {product.extras!.length} extras
+                    </span>
+                  )}
                   {!product.available && (
                     <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                       <span className="text-xs font-bold text-white bg-red-500 px-3 py-1 rounded-full">Indisponível</span>
@@ -263,7 +461,7 @@ export default function Cardapio() {
                     Editar
                   </button>
                   <button
-                    onClick={() => { if (confirm(`Excluir "${product.name}"?`)) deleteProduct(product.id); }}
+                    onClick={() => deleteProduct(product.id)}
                     className="py-1.5 rounded-lg text-xs font-medium bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
                   >
                     🗑

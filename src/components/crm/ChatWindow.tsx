@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useCRMStore } from "@/store/useCRMStore";
+import { toast } from "@/store/useToastStore";
 
 const statusIcon: Record<string, string> = {
   sent:      "✓",
@@ -41,6 +42,7 @@ export default function ChatWindow() {
     const msg = (text ?? input).trim();
     if (!msg || !selectedId) return;
     sendMessage(selectedId, msg);
+    toast.success("Mensagem enviada", customer?.name);
     setInput("");
     setShowTemplates(false);
   }

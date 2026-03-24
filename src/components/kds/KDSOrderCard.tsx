@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FlowOrder, useFlowStore } from "@/store/useFlowStore";
+import { toast as notify } from "@/store/useToastStore";
 import KDSTimer from "./KDSTimer";
 import WhatsAppToast from "./WhatsAppToast";
 
@@ -15,6 +16,18 @@ export default function KDSOrderCard({ order }: { order: FlowOrder }) {
   const advanceDelivery = useFlowStore((s) => s.advanceDelivery);
 
   const [toast, setToast] = useState<{ customer: string; message: string } | null>(null);
+  const [minutesReady, setMinutesReady] = useState(0);
+
+  // Conta quantos minutos o pedido está no status "ready"
+  const readySince = order.timeline.find((e) => e.status === "ready")?.timestamp;
+  useEffect(() => {
+    if (order.status !== "ready" || !readySince) return;
+    const update = () =>
+      setMinutesReady(Math.floor((Date.now() - readySince.getTime()) / 60000));
+    update();
+    const interval = setInterval(update, 30000); // atualiza a cada 30s
+    return () => clearInterval(interval);
+  }, [order.status, readySince]);
 
   const borderColor =
     order.status === "pending"   ? "border-blue-500/40" :
@@ -35,16 +48,27 @@ export default function KDSOrderCard({ order }: { order: FlowOrder }) {
       : order.createdAt;
 
   function handleMotoboyPickup() {
-    // Advance: ready → picked_up → on_the_way
     advanceDelivery(order.id); // ready → picked_up
     setTimeout(() => advanceDelivery(order.id), 100); // picked_up → on_the_way
-
+    notify.info(`#${order.number} saiu para entrega`, order.customer);
     const msg = `Oi ${order.customer}! 🏍️ Seu pedido saiu para entrega agora. Em breve chegará até você! Qualquer dúvida, é só chamar.`;
+    setToast({ customer: order.customer, message: msg });
+  }
+
+  function handleWhatsAppReminder() {
+    const label = minutesReady >= 60
+      ? `1 hora`
+      : `${minutesReady} minutos`;
+    const urgency = minutesReady >= 60
+      ? `⏰ Seu pedido *#${order.number}* já está pronto há ${label}. Por favor, venha buscar o mais rápido possível!`
+      : `😊 Seu pedido *#${order.number}* está pronto há ${label} e está te esperando para retirada!`;
+    const msg = `Oi ${order.customer}! ${urgency}`;
     setToast({ customer: order.customer, message: msg });
   }
 
   function handleMarkReady() {
     markReady(order.id);
+    notify.success(`#${order.number} pronto!`, order.customer);
     if (order.type === "delivery" && order.phone) {
       const msg = `Oi ${order.customer}! ✅ Seu pedido está pronto e aguardando o motoboy. Entrega em breve!`;
       setToast({ customer: order.customer, message: msg });
@@ -127,8 +151,27 @@ export default function KDSOrderCard({ order }: { order: FlowOrder }) {
           )}
 
           {order.status === "ready" && order.type !== "delivery" && (
-            <div className="w-full py-2.5 text-center text-green-400 text-sm font-medium">
-              {order.type === "takeaway" ? "⏳ Aguardando retirada" : "⏳ Aguardando cliente"}
+            <div className="space-y-2">
+              <div className="w-full py-2.5 text-center text-green-400 text-sm font-medium">
+                {order.type === "takeaway" ? "⏳ Aguardando retirada" : "⏳ Aguardando cliente"}
+              </div>
+
+              {/* Botão de lembrete WhatsApp após 30min */}
+              {order.phone && minutesReady >= 30 && (
+                <button
+                  onClick={handleWhatsAppReminder}
+                  className={`w-full py-2.5 rounded-xl text-sm font-bold transition-colors flex items-center justify-center gap-2 ${
+                    minutesReady >= 60
+                      ? "bg-red-500/20 border border-red-500/40 text-red-400 hover:bg-red-500/30"
+                      : "bg-yellow-500/15 border border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/25"
+                  }`}
+                >
+                  <span>💬</span>
+                  <span>
+                    {minutesReady >= 60 ? "Lembrete urgente" : "Lembrar cliente"} · {minutesReady >= 60 ? "1h+" : `${minutesReady}min`}
+                  </span>
+                </button>
+              )}
             </div>
           )}
         </div>

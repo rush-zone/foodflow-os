@@ -2,14 +2,19 @@
 
 import { useUpsell } from "@/hooks/useUpsell";
 import { useOrderStore } from "@/store/useOrderStore";
+import { useConfigStore } from "@/store/useConfigStore";
 import { useEffect, useState } from "react";
 import { products } from "@/data/products";
 
 export default function ComboDetector() {
   const { activeCombo, nearCombo } = useUpsell();
-  const addItem = useOrderStore((s) => s.addItem);
+  const addItem     = useOrderStore((s) => s.addItem);
   const setDiscount = useOrderStore((s) => s.setDiscount);
-  const discount = useOrderStore((s) => s.discount);
+  const discount    = useOrderStore((s) => s.discount);
+  const combosEnabled = useConfigStore((s) => s.config.operation.comboDiscountPct > 0);
+
+  // Combos desabilitados nas Configurações
+  if (!combosEnabled) return null;
 
   const [appliedComboId, setAppliedComboId] = useState<string | null>(null);
   const [dismissed, setDismissed] = useState<string | null>(null);

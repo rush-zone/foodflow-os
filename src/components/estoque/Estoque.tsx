@@ -1,7 +1,99 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useEstoqueStore, StockCategory, getStockStatus } from "@/store/useEstoqueStore";
+import { useEstoqueStore, StockCategory, StockItem, getStockStatus } from "@/store/useEstoqueStore";
+import { toast } from "@/store/useToastStore";
+
+const CATEGORIES: StockCategory[] = ["carnes", "bebidas", "vegetais", "massas", "embalagens", "temperos"];
+
+function NovoItemModal({ onClose }: { onClose: () => void }) {
+  const addItem = useEstoqueStore((s) => s.addItem);
+  const [form, setForm] = useState<Omit<StockItem, "id" | "lastUpdated">>({
+    name: "", category: "carnes", unit: "un",
+    quantity: 0, minQuantity: 0, idealQuantity: 0, cost: 0, supplier: "",
+  });
+
+  function set<K extends keyof typeof form>(k: K, v: typeof form[K]) {
+    setForm((f) => ({ ...f, [k]: v }));
+  }
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.name.trim()) return;
+    addItem(form);
+    toast.success("Item adicionado", form.name);
+    onClose();
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+      <form
+        onSubmit={handleSubmit}
+        className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 w-full max-w-md space-y-4"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-base font-bold text-white">Novo Item de Estoque</h2>
+          <button type="button" onClick={onClose} className="text-neutral-500 hover:text-white text-xl leading-none">×</button>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="col-span-2">
+            <label className="text-xs text-neutral-500 block mb-1">Nome *</label>
+            <input required value={form.name} onChange={(e) => set("name", e.target.value)}
+              className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-orange-500" />
+          </div>
+          <div>
+            <label className="text-xs text-neutral-500 block mb-1">Categoria</label>
+            <select value={form.category} onChange={(e) => set("category", e.target.value as StockCategory)}
+              className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-orange-500">
+              {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs text-neutral-500 block mb-1">Unidade</label>
+            <input value={form.unit} onChange={(e) => set("unit", e.target.value)}
+              className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-orange-500" />
+          </div>
+          <div>
+            <label className="text-xs text-neutral-500 block mb-1">Qtd. Atual</label>
+            <input type="number" min={0} value={form.quantity} onChange={(e) => set("quantity", Number(e.target.value))}
+              className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-orange-500" />
+          </div>
+          <div>
+            <label className="text-xs text-neutral-500 block mb-1">Qtd. Mínima</label>
+            <input type="number" min={0} value={form.minQuantity} onChange={(e) => set("minQuantity", Number(e.target.value))}
+              className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-orange-500" />
+          </div>
+          <div>
+            <label className="text-xs text-neutral-500 block mb-1">Qtd. Ideal</label>
+            <input type="number" min={0} value={form.idealQuantity} onChange={(e) => set("idealQuantity", Number(e.target.value))}
+              className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-orange-500" />
+          </div>
+          <div>
+            <label className="text-xs text-neutral-500 block mb-1">Custo/un (R$)</label>
+            <input type="number" min={0} step="0.01" value={form.cost} onChange={(e) => set("cost", Number(e.target.value))}
+              className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-orange-500" />
+          </div>
+          <div className="col-span-2">
+            <label className="text-xs text-neutral-500 block mb-1">Fornecedor</label>
+            <input value={form.supplier} onChange={(e) => set("supplier", e.target.value)}
+              className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-orange-500" />
+          </div>
+        </div>
+
+        <div className="flex gap-3 pt-2">
+          <button type="button" onClick={onClose} className="flex-1 py-2.5 text-sm text-neutral-500 hover:text-white border border-neutral-700 rounded-lg transition-colors">
+            Cancelar
+          </button>
+          <button type="submit" className="flex-1 py-2.5 text-sm font-semibold text-white bg-orange-500 hover:bg-orange-400 rounded-lg transition-colors">
+            Adicionar
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
 
 const categoryLabels: Record<StockCategory, { label: string; icon: string }> = {
   carnes:     { label: "Carnes",      icon: "🥩" },
@@ -20,13 +112,26 @@ const statusConfig = {
 };
 
 export default function Estoque() {
-  const items = useEstoqueStore((s) => s.items);
-  const adjust = useEstoqueStore((s) => s.adjust);
-  const restock = useEstoqueStore((s) => s.restock);
+  const items       = useEstoqueStore((s) => s.items);
+  const _adjust     = useEstoqueStore((s) => s.adjust);
+  const _restock    = useEstoqueStore((s) => s.restock);
+
+  function adjust(id: string, delta: number) {
+    _adjust(id, delta);
+    const item = items.find((i) => i.id === id);
+    if (item) toast.info(`${item.name}`, `${delta > 0 ? "+" : ""}${delta} ${item.unit}`);
+  }
+
+  function restock(id: string) {
+    const item = items.find((i) => i.id === id);
+    _restock(id);
+    if (item) toast.success("Estoque reposto", `${item.name} → ${item.idealQuantity} ${item.unit}`);
+  }
 
   const [catFilter, setCatFilter] = useState<StockCategory | "all">("all");
   const [statusFilter, setStatusFilter] = useState<"all" | "low" | "critical" | "out">("all");
   const [search, setSearch] = useState("");
+  const [showNovoItem, setShowNovoItem] = useState(false);
 
   const filtered = useMemo(() => {
     return items
@@ -45,6 +150,7 @@ export default function Estoque() {
 
   return (
     <div className="flex flex-col h-full bg-neutral-900">
+      {showNovoItem && <NovoItemModal onClose={() => setShowNovoItem(false)} />}
 
       {/* KPI bar */}
       <div className="grid grid-cols-4 divide-x divide-neutral-800 border-b border-neutral-800 shrink-0">
@@ -110,15 +216,23 @@ export default function Estoque() {
           </button>
         ))}
 
-        <div className="ml-auto relative">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500 text-xs">🔍</span>
-          <input
-            type="text"
-            placeholder="Buscar item..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="bg-neutral-800 border border-neutral-700 rounded-lg pl-8 pr-4 py-1.5 text-xs text-neutral-100 placeholder-neutral-600 outline-none focus:border-brand-primary/50 w-52 transition-colors"
-          />
+        <div className="ml-auto flex items-center gap-3">
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500 text-xs">🔍</span>
+            <input
+              type="text"
+              placeholder="Buscar item..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="bg-neutral-800 border border-neutral-700 rounded-lg pl-8 pr-4 py-1.5 text-xs text-neutral-100 placeholder-neutral-600 outline-none focus:border-brand-primary/50 w-52 transition-colors"
+            />
+          </div>
+          <button
+            onClick={() => setShowNovoItem(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-500 hover:bg-orange-400 text-white text-xs font-semibold rounded-lg transition-colors"
+          >
+            + Novo Item
+          </button>
         </div>
       </div>
 

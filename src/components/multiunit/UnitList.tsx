@@ -1,6 +1,7 @@
 "use client";
 
 import { useMultiunitStore, UnitStatus } from "@/store/useMultiunitStore";
+import { useFlowStore } from "@/store/useFlowStore";
 
 const statusConfig: Record<UnitStatus, { label: string; color: string; dot: string }> = {
   open:   { label: "Aberta",  color: "text-green-400",  dot: "bg-green-400" },
@@ -10,12 +11,17 @@ const statusConfig: Record<UnitStatus, { label: string; color: string; dot: stri
 };
 
 export default function UnitList() {
-  const units = useMultiunitStore((s) => s.units);
+  const units      = useMultiunitStore((s) => s.units);
   const selectedId = useMultiunitStore((s) => s.selectedId);
-  const select = useMultiunitStore((s) => s.select);
+  const select     = useMultiunitStore((s) => s.select);
+  const flowOrders = useFlowStore((s) => s.orders);
 
-  const totalRevenue = units.reduce((s, u) => s + u.todayRevenue, 0);
-  const totalOrders  = units.reduce((s, u) => s + u.todayOrders, 0);
+  // Live metrics for u1 from flowOrders
+  const u1LiveRevenue = flowOrders.filter((o) => o.status === "delivered").reduce((s, o) => s + o.total, 0);
+  const u1LiveOrders  = flowOrders.filter((o) => o.status !== "cancelled").length;
+
+  const totalRevenue = units.reduce((s, u) => s + (u.id === "u1" ? u1LiveRevenue : u.todayRevenue), 0);
+  const totalOrders  = units.reduce((s, u) => s + (u.id === "u1" ? u1LiveOrders  : u.todayOrders),  0);
   const totalAlerts  = units.reduce((s, u) => s + u.alerts.length, 0);
 
   return (
@@ -42,6 +48,11 @@ export default function UnitList() {
         {units.map((unit) => {
           const sc = statusConfig[unit.status];
           const isSelected = selectedId === unit.id;
+          const liveRevenue = unit.id === "u1" ? u1LiveRevenue : unit.todayRevenue;
+          const liveOrders  = unit.id === "u1" ? u1LiveOrders  : unit.todayOrders;
+          const liveActive  = unit.id === "u1"
+            ? flowOrders.filter((o) => ["pending","preparing","ready","picked_up","on_the_way"].includes(o.status)).length
+            : unit.activeOrders;
 
           return (
             <button
@@ -65,16 +76,16 @@ export default function UnitList() {
               {unit.status !== "closed" ? (
                 <div className="grid grid-cols-3 gap-2 mt-2">
                   <div>
-                    <p className="text-xs font-bold text-neutral-100">R$ {(unit.todayRevenue / 1000).toFixed(1)}k</p>
+                    <p className="text-xs font-bold text-neutral-100">R$ {(liveRevenue / 1000).toFixed(1)}k</p>
                     <p className="text-xs text-neutral-600">receita</p>
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-neutral-100">{unit.todayOrders}</p>
+                    <p className="text-xs font-bold text-neutral-100">{liveOrders}</p>
                     <p className="text-xs text-neutral-600">pedidos</p>
                   </div>
                   <div>
-                    <p className={`text-xs font-bold ${unit.activeOrders > 10 ? "text-yellow-400" : "text-neutral-100"}`}>
-                      {unit.activeOrders}
+                    <p className={`text-xs font-bold ${liveActive > 10 ? "text-yellow-400" : "text-neutral-100"}`}>
+                      {liveActive}
                     </p>
                     <p className="text-xs text-neutral-600">ativos</p>
                   </div>

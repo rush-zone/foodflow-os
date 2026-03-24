@@ -1,9 +1,38 @@
 "use client";
 
 import { useMultiunitStore } from "@/store/useMultiunitStore";
+import { useFlowStore } from "@/store/useFlowStore";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
+
+// Derive live metrics for the main unit (u1) from useFlowStore
+function useLiveUnitMetrics() {
+  const orders = useFlowStore((s) => s.orders);
+  const delivered = orders.filter((o) => o.status === "delivered");
+  const todayRevenue    = delivered.reduce((s, o) => s + o.total, 0);
+  const todayOrders     = orders.filter((o) => o.status !== "cancelled").length;
+  const todayDeliveries = orders.filter((o) => o.type === "delivery" && o.status !== "cancelled").length;
+  const activeOrders    = orders.filter((o) =>
+    ["pending","preparing","ready","picked_up","on_the_way"].includes(o.status)
+  ).length;
+  const pendingKDS      = orders.filter((o) => o.status === "pending").length;
+  const todayAvgTicket  = todayOrders > 0 ? todayRevenue / todayOrders : 0;
+
+  // Build hourly from order timestamps (last 12 hours)
+  const buckets: Record<string, { orders: number; revenue: number }> = {};
+  orders.forEach((o) => {
+    const h = `${o.createdAt.getHours()}h`;
+    if (!buckets[h]) buckets[h] = { orders: 0, revenue: 0 };
+    buckets[h].orders  += 1;
+    buckets[h].revenue += o.total;
+  });
+  const hourly = Object.entries(buckets)
+    .sort((a, b) => parseInt(a[0]) - parseInt(b[0]))
+    .map(([hour, v]) => ({ hour, ...v }));
+
+  return { todayRevenue, todayOrders, todayAvgTicket, todayDeliveries, activeOrders, pendingKDS, hourly };
+}
 
 const alertIcon: Record<string, string> = {
   stock: "📦", delivery: "🏍️", kds: "🍳", system: "⚙️",
@@ -31,14 +60,20 @@ function delta(current: number, previous: number) {
 }
 
 export default function UnitDashboard() {
-  const units = useMultiunitStore((s) => s.units);
+  const units      = useMultiunitStore((s) => s.units);
   const selectedId = useMultiunitStore((s) => s.selectedId);
   const dismissAlert = useMultiunitStore((s) => s.dismissAlert);
+  const liveMetrics  = useLiveUnitMetrics();
 
   const unit = units.find((u) => u.id === selectedId);
   if (!unit) return null;
 
-  const weekDelta = delta(unit.weekRevenue, unit.weekRevenueLastWeek);
+  // Overlay live metrics for unit u1 (Vila Madalena = the instance running this app)
+  const metrics = unit.id === "u1"
+    ? { ...unit, ...liveMetrics, hourly: liveMetrics.hourly.length > 0 ? liveMetrics.hourly : unit.hourly }
+    : unit;
+
+  const weekDelta   = delta(unit.weekRevenue, unit.weekRevenueLastWeek);
   const staffOnDuty = unit.staff.filter((s) => s.clockedIn);
 
   return (
@@ -75,11 +110,11 @@ export default function UnitDashboard() {
           <h3 className="text-xs font-bold text-neutral-500 uppercase tracking-widest mb-3">Hoje</h3>
           <div className="grid grid-cols-5 gap-3">
             {[
-              { label: "Receita",    value: `R$ ${unit.todayRevenue.toFixed(0)}`,  color: "text-green-400",  icon: "💰" },
-              { label: "Pedidos",    value: String(unit.todayOrders),               color: "text-blue-400",   icon: "📋" },
-              { label: "Ticket Médio", value: `R$ ${unit.todayAvgTicket.toFixed(0)}`, color: "text-brand-primary", icon: "🎯" },
-              { label: "Deliveries", value: String(unit.todayDeliveries),           color: "text-orange-400", icon: "🏍️" },
-              { label: "Ativos",     value: String(unit.activeOrders),              color: unit.activeOrders > 10 ? "text-yellow-400" : "text-neutral-100", icon: "⚡" },
+              { label: "Receita",    value: `R$ ${metrics.todayRevenue.toFixed(0)}`,  color: "text-green-400",  icon: "💰" },
+              { label: "Pedidos",    value: String(metrics.todayOrders),               color: "text-blue-400",   icon: "📋" },
+              { label: "Ticket Médio", value: `R$ ${metrics.todayAvgTicket.toFixed(0)}`, color: "text-brand-primary", icon: "🎯" },
+              { label: "Deliveries", value: String(metrics.todayDeliveries),           color: "text-orange-400", icon: "🏍️" },
+              { label: "Ativos",     value: String(metrics.activeOrders),              color: metrics.activeOrders > 10 ? "text-yellow-400" : "text-neutral-100", icon: "⚡" },
             ].map((kpi) => (
               <div key={kpi.label} className="bg-neutral-800 border border-neutral-700 rounded-2xl p-4 text-center">
                 <div className="text-lg mb-1">{kpi.icon}</div>
@@ -120,12 +155,15 @@ export default function UnitDashboard() {
         )}
 
         {/* Hourly chart */}
-        {unit.hourly.length > 0 && (
+        {metrics.hourly.length > 0 && (
           <section>
-            <h3 className="text-xs font-bold text-neutral-500 uppercase tracking-widest mb-3">Pedidos por Hora</h3>
+            <h3 className="text-xs font-bold text-neutral-500 uppercase tracking-widest mb-3">
+              Pedidos por Hora
+              {unit.id === "u1" && <span className="ml-2 text-[10px] text-green-400 font-normal bg-green-400/10 px-1.5 py-0.5 rounded-full">live</span>}
+            </h3>
             <div className="bg-neutral-800 border border-neutral-700 rounded-2xl p-5">
               <ResponsiveContainer width="100%" height={160}>
-                <BarChart data={unit.hourly} barSize={14}>
+                <BarChart data={metrics.hourly} barSize={14}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#374151" vertical={false} />
                   <XAxis dataKey="hour" tick={{ fill: "#6B7280", fontSize: 11 }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fill: "#6B7280", fontSize: 11 }} axisLine={false} tickLine={false} />

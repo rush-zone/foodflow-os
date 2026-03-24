@@ -47,11 +47,34 @@ export default function KDS() {
     return () => clearInterval(id);
   }, []);
 
-  // Sound alert when a new pending order arrives
+  // Pede permissão de notificação ao montar
   useEffect(() => {
-    const currentIds = new Set(orders.filter((o) => o.status === "pending").map((o) => o.id));
-    const hasNew = [...currentIds].some((id) => !prevPendingIds.current.has(id));
-    if (hasNew) playAlert();
+    if (typeof Notification !== "undefined" && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+  }, []);
+
+  // Som + notificação browser quando novo pedido chega
+  useEffect(() => {
+    const pending = orders.filter((o) => o.status === "pending");
+    const currentIds = new Set(pending.map((o) => o.id));
+    const newOrders  = pending.filter((o) => !prevPendingIds.current.has(o.id));
+
+    if (newOrders.length > 0) {
+      playAlert();
+
+      if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+        newOrders.forEach((o) => {
+          const typeLabel = o.type === "delivery" ? "🏍️ Delivery" : o.type === "takeaway" ? "🥡 Retirada" : "🪑 Mesa";
+          new Notification(`🔔 Novo pedido #${o.number}`, {
+            body: `${typeLabel} — ${o.customer}  ·  R$ ${o.total.toFixed(2).replace(".", ",")}`,
+            icon: "/favicon.ico",
+            tag:  `order-${o.id}`, // agrupa notificações do mesmo pedido
+          });
+        });
+      }
+    }
+
     prevPendingIds.current = currentIds;
   }, [orders]);
 

@@ -1,4 +1,6 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import { makePersistStorage } from "@/lib/storage";
 
 export type CustomerTag = "vip" | "recorrente" | "novo" | "inativo";
 export type MessageStatus = "sent" | "delivered" | "read";
@@ -21,10 +23,13 @@ export interface CRMOrder {
   status: string;
 }
 
+export type AddressType = "casa" | "apartamento";
+
 export interface CRMCustomer {
   id: string;
   name: string;
   phone: string;
+  email?: string;
   avatar: string;
   tags: CustomerTag[];
   totalOrders: number;
@@ -36,6 +41,12 @@ export interface CRMCustomer {
   messages: CRMMessage[];
   unread: number;
   notes: string;
+  // Endereço
+  address?: string;         // rua + número de rua
+  neighborhood?: string;    // bairro
+  addressNumber?: string;   // número da residência
+  addressType?: AddressType; // casa ou apartamento
+  addressComplement?: string; // apto, bloco, etc.
 }
 
 export interface MessageTemplate {
@@ -52,6 +63,11 @@ interface CRMStore {
   sendMessage: (customerId: string, text: string) => void;
   markRead: (customerId: string) => void;
   updateNotes: (customerId: string, notes: string) => void;
+  updateCustomer: (id: string, data: Partial<CRMCustomer>) => void;
+  addCustomer: (data: Pick<CRMCustomer,
+    "name" | "phone" | "email" | "tags" |
+    "address" | "neighborhood" | "addressNumber" | "addressType" | "addressComplement"
+  >) => void;
   templates: MessageTemplate[];
 }
 
@@ -190,7 +206,7 @@ const templates: MessageTemplate[] = [
   { id: "t7", label: "Atraso na entrega",   emoji: "⏳", text: "Desculpe o atraso! Seu pedido está a caminho e chegará em mais ~15 minutos. Obrigado pela paciência 🙏" },
 ];
 
-export const useCRMStore = create<CRMStore>((set, get) => ({
+export const useCRMStore = create<CRMStore>()(persist((set, get) => ({
   customers,
   templates,
   selectedId: "c1",
@@ -240,4 +256,33 @@ export const useCRMStore = create<CRMStore>((set, get) => ({
         c.id === customerId ? { ...c, notes } : c
       ),
     }),
+
+  updateCustomer: (id, data) =>
+    set({
+      customers: get().customers.map((c) => c.id === id ? { ...c, ...data } : c),
+    }),
+
+  addCustomer: (data) => {
+    const initials = data.name.trim().split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+    const customer: CRMCustomer = {
+      id: `c${Date.now()}`,
+      avatar: initials,
+      tags: data.tags ?? ["novo"],
+      totalOrders: 0,
+      totalSpent: 0,
+      avgTicket: 0,
+      lastOrderAt: new Date(),
+      favoriteItems: [],
+      orders: [],
+      messages: [],
+      unread: 0,
+      notes: "",
+      ...data,
+    };
+    set({ customers: [customer, ...get().customers], selectedId: customer.id });
+  },
+}), {
+  name: "foodflow-crm",
+  storage: makePersistStorage<CRMStore>(),
+  partialize: (state) => ({ customers: state.customers, selectedId: state.selectedId }),
 }));
