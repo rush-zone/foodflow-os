@@ -68,6 +68,15 @@ interface CRMStore {
     "name" | "phone" | "email" | "tags" |
     "address" | "neighborhood" | "addressNumber" | "addressType" | "addressComplement"
   >) => void;
+  /**
+   * Cadastra ou atualiza pelo número de telefone.
+   * Se já existir um cliente com o mesmo telefone, atualiza nome/endereço.
+   * Garante que cadastro via web e via PDV/atendente não dupliquem o mesmo cliente.
+   */
+  upsertCustomer: (data: Pick<CRMCustomer,
+    "name" | "phone" | "email" | "tags" |
+    "address" | "neighborhood" | "addressNumber" | "addressType" | "addressComplement"
+  >) => void;
   templates: MessageTemplate[];
 }
 
@@ -280,6 +289,34 @@ export const useCRMStore = create<CRMStore>()(persist((set, get) => ({
       ...data,
     };
     set({ customers: [customer, ...get().customers], selectedId: customer.id });
+  },
+
+  upsertCustomer: (data) => {
+    const normPhone = data.phone?.replace(/\D/g, "") ?? "";
+    const existing = normPhone
+      ? get().customers.find((c) => c.phone.replace(/\D/g, "") === normPhone)
+      : null;
+
+    if (existing) {
+      // Atualiza: preserva histórico e estatísticas, atualiza dados cadastrais
+      set({
+        customers: get().customers.map((c) =>
+          c.id === existing.id
+            ? {
+                ...c,
+                name:              data.name              || c.name,
+                address:           data.address           ?? c.address,
+                neighborhood:      data.neighborhood      ?? c.neighborhood,
+                addressNumber:     data.addressNumber     ?? c.addressNumber,
+                addressType:       data.addressType       ?? c.addressType,
+                addressComplement: data.addressComplement ?? c.addressComplement,
+              }
+            : c
+        ),
+      });
+    } else {
+      get().addCustomer(data);
+    }
   },
 }), {
   name: "foodflow-crm",

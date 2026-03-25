@@ -28,7 +28,7 @@ export default function LojaProductPage({ productId }: Props) {
 
   if (!product) {
     return (
-      <div className="min-h-screen bg-neutral-950 flex flex-col items-center justify-center gap-4 text-neutral-500">
+      <div className="min-h-screen bg-neutral-50 flex flex-col items-center justify-center gap-4 text-neutral-400">
         <span className="text-5xl">🍽️</span>
         <p>Produto não encontrado</p>
         <button
@@ -58,6 +58,7 @@ export default function LojaProductPage({ productId }: Props) {
   const totalPrice  = unitPrice * qty + (selectedDrink ? selectedDrink.price : 0);
 
   function handleAddToCart() {
+    if (!product) return;
     // Main product
     if (cartItem) {
       updateExtras(product.id, selectedExtras);
@@ -88,14 +89,14 @@ export default function LojaProductPage({ productId }: Props) {
       }
     }
 
-    router.push("/loja");
+    router.back();
   }
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-white flex flex-col">
+    <div className="h-screen bg-neutral-50 text-neutral-900 flex flex-col overflow-hidden">
 
       {/* Hero image */}
-      <div className="relative w-full h-72 sm:h-80 bg-neutral-900 shrink-0">
+      <div className="relative w-full h-72 sm:h-80 bg-neutral-200 shrink-0">
         {product.image ? (
           <img
             src={product.image}
@@ -103,17 +104,17 @@ export default function LojaProductPage({ productId }: Props) {
             className="w-full h-full object-cover"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-7xl bg-neutral-800">
+          <div className="w-full h-full flex items-center justify-center text-7xl bg-neutral-100">
             🍽️
           </div>
         )}
-        {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-transparent to-black/30" />
+        {/* Gradient overlay to blend into bg-neutral-50 */}
+        <div className="absolute inset-0 bg-gradient-to-t from-neutral-50 via-transparent to-black/20" />
 
         {/* Back button */}
         <button
           onClick={() => router.back()}
-          className="absolute top-4 left-4 flex items-center gap-2 px-3 py-2 rounded-xl bg-black/50 backdrop-blur text-white text-sm font-medium hover:bg-black/70 transition-colors"
+          className="absolute top-4 left-4 flex items-center gap-2 px-3 py-2 rounded-xl bg-white/80 backdrop-blur border border-neutral-200 text-neutral-700 text-sm font-medium hover:bg-white transition-colors shadow"
         >
           ← Voltar
         </button>
@@ -132,7 +133,7 @@ export default function LojaProductPage({ productId }: Props) {
 
           {/* Name + price */}
           <div className="flex items-start justify-between gap-4 mb-2">
-            <h1 className="text-2xl font-black text-white leading-tight flex-1">
+            <h1 className="text-2xl font-black text-neutral-900 leading-tight flex-1">
               {product.name}
             </h1>
             <span className="text-xl font-black text-brand-primary shrink-0">
@@ -141,14 +142,14 @@ export default function LojaProductPage({ productId }: Props) {
           </div>
 
           {/* Description */}
-          <p className="text-sm text-neutral-400 leading-relaxed mb-6">
+          <p className="text-sm text-neutral-500 leading-relaxed mb-6">
             {product.description}
           </p>
 
           {/* ── Extras / Ingredientes ── */}
           {(product.extras ?? []).length > 0 && (
             <section className="mb-8">
-              <h2 className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-3">
+              <h2 className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-3">
                 Adicionais e ingredientes
               </h2>
               <div className="space-y-2">
@@ -160,8 +161,8 @@ export default function LojaProductPage({ productId }: Props) {
                       onClick={() => toggleExtra(extra)}
                       className={`w-full flex items-center justify-between px-4 py-3.5 rounded-2xl border transition-all text-left ${
                         active
-                          ? "border-brand-primary bg-brand-primary/10"
-                          : "border-neutral-800 bg-neutral-900 hover:border-neutral-700"
+                          ? "border-brand-primary bg-brand-primary/8"
+                          : "border-neutral-200 bg-white hover:border-neutral-300 shadow-sm"
                       }`}
                     >
                       <div className="flex items-center gap-3">
@@ -170,7 +171,7 @@ export default function LojaProductPage({ productId }: Props) {
                           className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
                             active
                               ? "border-brand-primary bg-brand-primary"
-                              : "border-neutral-600"
+                              : "border-neutral-300"
                           }`}
                         >
                           {active && (
@@ -185,7 +186,7 @@ export default function LojaProductPage({ productId }: Props) {
                             </svg>
                           )}
                         </span>
-                        <span className={`text-sm font-medium ${active ? "text-white" : "text-neutral-300"}`}>
+                        <span className={`text-sm font-medium ${active ? "text-brand-primary" : "text-neutral-700"}`}>
                           {extra.name}
                         </span>
                       </div>
@@ -204,7 +205,7 @@ export default function LojaProductPage({ productId }: Props) {
           {/* ── Drink upsell ── */}
           {drinks.length > 0 && (
             <section className="mb-8">
-              <h2 className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-3">
+              <h2 className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-3">
                 Adicione uma bebida
               </h2>
               <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-none -mx-1 px-1">
@@ -216,14 +217,14 @@ export default function LojaProductPage({ productId }: Props) {
                       onClick={() =>
                         setSelectedDrink(active ? null : drink)
                       }
-                      className={`shrink-0 w-28 rounded-2xl border overflow-hidden transition-all text-left ${
+                      className={`shrink-0 w-28 rounded-2xl border overflow-hidden transition-all text-left shadow-sm ${
                         active
-                          ? "border-brand-primary ring-2 ring-brand-primary/30"
-                          : "border-neutral-800 hover:border-neutral-700"
+                          ? "border-brand-primary ring-2 ring-brand-primary/25"
+                          : "border-neutral-200 hover:border-neutral-300"
                       }`}
                     >
                       {drink.image ? (
-                        <div className="h-20 overflow-hidden bg-neutral-800">
+                        <div className="h-20 overflow-hidden bg-neutral-100">
                           <img
                             src={drink.image}
                             alt={drink.name}
@@ -231,19 +232,19 @@ export default function LojaProductPage({ productId }: Props) {
                           />
                         </div>
                       ) : (
-                        <div className="h-20 bg-neutral-800 flex items-center justify-center text-3xl">
+                        <div className="h-20 bg-neutral-100 flex items-center justify-center text-3xl">
                           🥤
                         </div>
                       )}
-                      <div className="p-2">
-                        <p className="text-[11px] font-bold text-white leading-tight line-clamp-2">
+                      <div className="p-2 bg-white">
+                        <p className="text-[11px] font-bold text-neutral-900 leading-tight line-clamp-2">
                           {drink.name}
                         </p>
                         <p className="text-[11px] text-brand-primary font-bold mt-0.5">
                           +R$ {drink.price.toFixed(2).replace(".", ",")}
                         </p>
                         {active && (
-                          <span className="mt-1 inline-block text-[9px] bg-brand-primary/20 text-brand-primary px-1.5 py-0.5 rounded-full font-bold">
+                          <span className="mt-1 inline-block text-[9px] bg-brand-primary/15 text-brand-primary px-1.5 py-0.5 rounded-full font-bold">
                             ✓ Selecionado
                           </span>
                         )}
@@ -258,20 +259,20 @@ export default function LojaProductPage({ productId }: Props) {
       </div>
 
       {/* ── Sticky footer ── */}
-      <div className="fixed bottom-0 left-0 right-0 z-20 bg-neutral-950/95 backdrop-blur border-t border-neutral-800 px-5 py-4">
+      <div className="fixed bottom-0 left-0 right-0 z-20 bg-white/95 backdrop-blur border-t border-neutral-200 shadow-lg px-5 py-4">
         <div className="max-w-lg mx-auto flex items-center gap-4">
           {/* Qty stepper */}
-          <div className="flex items-center gap-3 bg-neutral-800 rounded-2xl px-3 py-2.5 shrink-0">
+          <div className="flex items-center gap-3 bg-neutral-100 border border-neutral-200 rounded-2xl px-3 py-2.5 shrink-0">
             <button
               onClick={() => setQty((q) => Math.max(1, q - 1))}
-              className="w-7 h-7 rounded-full bg-neutral-700 hover:bg-neutral-600 text-white font-black flex items-center justify-center transition-colors"
+              className="w-7 h-7 rounded-full bg-neutral-200 hover:bg-neutral-300 text-neutral-700 font-black flex items-center justify-center transition-colors"
             >
               −
             </button>
-            <span className="text-sm font-bold text-white w-5 text-center">{qty}</span>
+            <span className="text-sm font-bold text-neutral-900 w-5 text-center">{qty}</span>
             <button
               onClick={() => setQty((q) => q + 1)}
-              className="w-7 h-7 rounded-full bg-neutral-700 hover:bg-neutral-600 text-white font-black flex items-center justify-center transition-colors"
+              className="w-7 h-7 rounded-full bg-neutral-200 hover:bg-neutral-300 text-neutral-700 font-black flex items-center justify-center transition-colors"
             >
               +
             </button>
@@ -280,10 +281,10 @@ export default function LojaProductPage({ productId }: Props) {
           {/* CTA */}
           <button
             onClick={handleAddToCart}
-            className="flex-1 py-3.5 bg-brand-primary hover:bg-brand-secondary text-white font-black rounded-2xl transition-colors flex items-center justify-between px-5 shadow-xl active:scale-[0.98]"
+            className="flex-1 py-4 bg-brand-primary hover:bg-brand-secondary text-white font-black rounded-2xl transition-all flex items-center justify-between px-5 shadow-lg active:scale-[0.97] text-base"
           >
-            <span>{cartItem ? "Atualizar pedido" : "Adicionar ao carrinho"}</span>
-            <span>R$ {totalPrice.toFixed(2).replace(".", ",")}</span>
+            <span>{cartItem ? "Atualizar pedido" : "🛒 Adicionar ao carrinho"}</span>
+            <span className="text-white/90">R$ {totalPrice.toFixed(2).replace(".", ",")}</span>
           </button>
         </div>
       </div>

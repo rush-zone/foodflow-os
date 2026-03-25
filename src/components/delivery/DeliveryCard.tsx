@@ -3,6 +3,8 @@
 import { FlowOrder } from "@/store/useFlowStore";
 import DeliveryStatusBadge from "./DeliveryStatusBadge";
 import KDSTimer from "@/components/kds/KDSTimer";
+import { PlatformBadge } from "@/components/shared/PlatformBadge";
+import { HelmetIcon } from "@/components/shared/HelmetIcon";
 
 interface Props {
   order: FlowOrder;
@@ -18,16 +20,17 @@ export default function DeliveryCard({ order, selected, onSelect }: Props) {
         selected ? "bg-brand-primary/5 border-l-2 border-l-brand-primary" : "hover:bg-neutral-800/50"
       }`}
     >
-      <div className="flex items-start justify-between gap-2 mb-2">
-        <div>
+      <div className="flex items-start justify-between gap-2 mb-1.5">
+        <div className="flex items-center gap-2 flex-wrap">
           <span className="text-sm font-bold text-neutral-100">#{order.number}</span>
-          <span className="text-sm text-neutral-400 ml-2">{order.customer}</span>
+          <span className="text-sm text-neutral-400">{order.customer}</span>
+          <PlatformBadge platform={order.platform} />
         </div>
         <DeliveryStatusBadge status={order.status} />
       </div>
 
       {order.address && (
-        <div className="text-xs text-neutral-500 truncate mb-2">{order.address}</div>
+        <div className="text-xs text-neutral-500 truncate mb-1.5">📍 {order.address}</div>
       )}
 
       <div className="flex items-center justify-between text-xs">
@@ -40,11 +43,13 @@ export default function DeliveryCard({ order, selected, onSelect }: Props) {
       </div>
 
       {order.motoboy && (
-        <div className="mt-2 flex items-center gap-1.5 text-xs text-neutral-500">
-          <span className="w-4 h-4 rounded-full bg-neutral-700 text-neutral-300 flex items-center justify-center text-xs font-bold">
-            {order.motoboy.avatar[0]}
+        <div className="mt-2 flex items-center gap-1.5 text-xs">
+          <HelmetIcon className="w-3.5 h-3.5 text-brand-primary shrink-0" />
+          <span className="text-neutral-300 font-medium">{order.motoboy.name}</span>
+          <span className="text-neutral-600">·</span>
+          <span className={`font-semibold ${order.motoboy.source === "proprio" ? "text-brand-primary" : "text-neutral-400"}`}>
+            {order.motoboy.source === "proprio" ? "Da loja" : "Do app"}
           </span>
-          {order.motoboy.name}
         </div>
       )}
     </button>

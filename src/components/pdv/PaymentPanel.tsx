@@ -90,6 +90,9 @@ export default function PaymentPanel() {
     if (data.paymentMethod === "cash") {
       setCashReceived("");
       setGateway("confirming_cash");
+    } else if (data.paymentMethod === "card_delivery") {
+      // Payment happens on delivery — send straight to kitchen
+      setGateway("approved");
     } else if (data.paymentMethod === "pix") {
       setGateway("awaiting_pix");
       // Simulate PIX confirmation after 4s

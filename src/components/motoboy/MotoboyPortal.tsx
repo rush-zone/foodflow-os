@@ -40,6 +40,17 @@ export default function MotoboyPortal() {
 
   const totalEarned = completed.reduce((sum, o) => sum + o.total, 0);
 
+  // Sync cross-tab: recarrega o store quando cozinha/loja muda em outra aba
+  useEffect(() => {
+    function onStorage(e: StorageEvent) {
+      if (e.key === "foodflow-orders") {
+        useFlowStore.persist.rehydrate();
+      }
+    }
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+
   // Notificações browser para pedidos prontos sem motoboy
   const seenRef = useRef(new Set<string>());
   useEffect(() => {

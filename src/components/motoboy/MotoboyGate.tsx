@@ -2,10 +2,13 @@
 
 import { useMotoboysAuthStore } from "@/store/useMotoboysAuthStore";
 import MotoboyLogin from "./MotoboyLogin";
+import MotoboyOnboarding from "./MotoboyOnboarding";
 import MotoboyPortal from "./MotoboyPortal";
 
 export default function MotoboyGate() {
   const currentMotoboy = useMotoboysAuthStore((s) => s.currentMotoboy);
-  if (!currentMotoboy) return <MotoboyLogin />;
+
+  if (!currentMotoboy)           return <MotoboyLogin />;
+  if (!currentMotoboy.onboarded) return <MotoboyOnboarding />;
   return <MotoboyPortal />;
 }

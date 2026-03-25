@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useConfigStore, AppConfig } from "@/store/useConfigStore";
+import { useFlowStore } from "@/store/useFlowStore";
+import { useLojaCustomerStore } from "@/store/useLojaCustomerStore";
 import { toast } from "@/store/useToastStore";
 
 type Section = "restaurant" | "delivery" | "operation" | "receipt";
@@ -187,12 +189,57 @@ export default function Configuracoes() {
                   </Field>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
-                  <Field label="Tempo estimado">
+                  <Field label="Tempo estimado padrão" hint="Referência geral de minutos">
                     <NumberInput value={draft.delivery.estimatedMinutes} onChange={(v) => patch("delivery", "estimatedMinutes", v)} min={5} step={5} suffix="min" />
                   </Field>
                   <Field label="Raio de atendimento">
                     <NumberInput value={draft.delivery.radiusKm} onChange={(v) => patch("delivery", "radiusKm", v)} min={1} step={0.5} suffix="km" />
                   </Field>
+                </div>
+
+                {/* Fluxo da cozinha */}
+                <div>
+                  <p className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-3">Tempo por fluxo da cozinha</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-neutral-800/60 border border-green-500/20 rounded-xl p-4 space-y-3">
+                      <p className="text-xs font-bold text-green-400">🟢 Fluxo Normal</p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <Field label="Mínimo">
+                          <NumberInput
+                            value={draft.delivery.flowMinutes?.normal?.min ?? 30}
+                            onChange={(v) => patch("delivery", "flowMinutes", { ...draft.delivery.flowMinutes, normal: { ...draft.delivery.flowMinutes?.normal, min: v } })}
+                            min={5} step={5} suffix="min"
+                          />
+                        </Field>
+                        <Field label="Máximo">
+                          <NumberInput
+                            value={draft.delivery.flowMinutes?.normal?.max ?? 60}
+                            onChange={(v) => patch("delivery", "flowMinutes", { ...draft.delivery.flowMinutes, normal: { ...draft.delivery.flowMinutes?.normal, max: v } })}
+                            min={5} step={5} suffix="min"
+                          />
+                        </Field>
+                      </div>
+                    </div>
+                    <div className="bg-neutral-800/60 border border-orange-500/20 rounded-xl p-4 space-y-3">
+                      <p className="text-xs font-bold text-orange-400">🔴 Fluxo Alto</p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <Field label="Mínimo">
+                          <NumberInput
+                            value={draft.delivery.flowMinutes?.alto?.min ?? 60}
+                            onChange={(v) => patch("delivery", "flowMinutes", { ...draft.delivery.flowMinutes, alto: { ...draft.delivery.flowMinutes?.alto, min: v } })}
+                            min={5} step={5} suffix="min"
+                          />
+                        </Field>
+                        <Field label="Máximo">
+                          <NumberInput
+                            value={draft.delivery.flowMinutes?.alto?.max ?? 120}
+                            onChange={(v) => patch("delivery", "flowMinutes", { ...draft.delivery.flowMinutes, alto: { ...draft.delivery.flowMinutes?.alto, max: v } })}
+                            min={5} step={5} suffix="min"
+                          />
+                        </Field>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </>
@@ -271,6 +318,29 @@ export default function Configuracoes() {
           )}
 
         </div>
+
+        {/* ── Zona de perigo ── */}
+        <div className="border-t border-neutral-800 mt-4 pt-4 mx-4 mb-4">
+          <p className="text-[10px] font-bold text-neutral-600 uppercase tracking-wider mb-3">Zona de perigo</p>
+          <button
+            onClick={() => {
+              if (!confirm("Apagar todos os pedidos? Esta ação não pode ser desfeita.")) return;
+              useFlowStore.getState().resetOrders();
+              // Limpa o pedido ativo da sessão do cliente na loja
+              const cur = useLojaCustomerStore.getState().session;
+              if (cur) {
+                useLojaCustomerStore.setState({
+                  session: { ...cur, activeOrderId: undefined },
+                });
+              }
+              toast.success("Todos os pedidos foram apagados.");
+            }}
+            className="w-full py-2.5 rounded-xl border border-red-800/50 bg-red-900/20 text-red-400 text-sm font-semibold hover:bg-red-900/40 transition-colors"
+          >
+            🗑️ Limpar todos os pedidos
+          </button>
+        </div>
+
       </div>
     </div>
   );

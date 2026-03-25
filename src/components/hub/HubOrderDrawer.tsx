@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { FlowOrder, FlowStatus } from "@/store/useFlowStore";
 import { useConfigStore } from "@/store/useConfigStore";
 import HubStatusBadge from "./HubStatusBadge";
+import { HelmetIcon } from "@/components/shared/HelmetIcon";
 
 function printReceipt(order: FlowOrder) {
   const { restaurant, receipt } = useConfigStore.getState().config;
@@ -170,14 +171,26 @@ export default function HubOrderDrawer({ order, onClose, onCancel }: Props) {
           {/* Motoboy */}
           {order.motoboy && (
             <section className="px-5 py-4 border-b border-neutral-800">
-              <p className="text-xs text-neutral-500 font-semibold uppercase tracking-wider mb-3">Motoboy</p>
+              <p className="text-xs text-neutral-500 font-semibold uppercase tracking-wider mb-3">Entregador</p>
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-orange-500/20 text-orange-400 font-black text-sm flex items-center justify-center shrink-0">
-                  {order.motoboy.avatar}
+                <div className="w-10 h-10 rounded-full bg-brand-primary/15 text-brand-primary flex items-center justify-center shrink-0">
+                  <HelmetIcon className="w-5 h-5" />
                 </div>
-                <div>
-                  <p className="text-sm font-bold text-neutral-100">{order.motoboy.name}</p>
-                  <p className="text-xs text-neutral-500">{order.motoboy.vehicle} · {order.motoboy.plate} · {order.motoboy.phone}</p>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-bold text-neutral-100">{order.motoboy.name}</p>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
+                      order.motoboy.source === "proprio"
+                        ? "bg-brand-primary/15 text-brand-primary"
+                        : "bg-neutral-700 text-neutral-400"
+                    }`}>
+                      {order.motoboy.source === "proprio" ? "Da loja" : "Do app"}
+                    </span>
+                  </div>
+                  <p className="text-xs text-neutral-500 mt-0.5">{order.motoboy.vehicle} · {order.motoboy.plate}</p>
+                  <a href={`tel:${order.motoboy.phone}`} className="text-xs text-green-400 hover:text-green-300 mt-0.5 inline-block">
+                    📞 {order.motoboy.phone}
+                  </a>
                 </div>
               </div>
             </section>

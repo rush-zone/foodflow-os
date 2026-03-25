@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useFlowStore, FlowStatus } from "@/store/useFlowStore";
+import { useKitchenStore, FLOW_META, fmtMinutes } from "@/store/useKitchenStore";
+import { useConfigStore } from "@/store/useConfigStore";
 import KDSOrderCard from "./KDSOrderCard";
 
 function playAlert() {
@@ -32,7 +34,10 @@ const columns: { status: FlowStatus; label: string; icon: string; color: string 
 ];
 
 export default function KDS() {
-  const orders = useFlowStore((s) => s.orders);
+  const orders      = useFlowStore((s) => s.orders);
+  const flow        = useKitchenStore((s) => s.flow);
+  const setFlow     = useKitchenStore((s) => s.setFlow);
+  const flowMinutes = useConfigStore((s) => s.config.delivery.flowMinutes);
   const [clock, setClock] = useState("");
   const prevPendingIds = useRef<Set<string>>(
     new Set(orders.filter((o) => o.status === "pending").map((o) => o.id))
@@ -96,7 +101,33 @@ export default function KDS() {
             );
           })}
         </div>
-        <span className="font-mono text-neutral-400 text-sm tabular-nums">{clock}</span>
+
+        <div className="flex items-center gap-3">
+          {/* Flow toggle */}
+          <div className="flex items-center gap-1.5 bg-neutral-800 rounded-xl p-1">
+            {(["normal", "alto"] as const).map((f) => {
+              const cfg    = FLOW_META[f];
+              const active = flow === f;
+              const fm     = flowMinutes?.[f] ?? (f === "normal" ? { min: 30, max: 60 } : { min: 60, max: 120 });
+              const range  = `${fmtMinutes(fm.min)} – ${fmtMinutes(fm.max)}`;
+              return (
+                <button
+                  key={f}
+                  onClick={() => setFlow(f)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    active
+                      ? `${cfg.color} ${cfg.bg} border`
+                      : "text-neutral-500 hover:text-neutral-300"
+                  }`}
+                >
+                  {cfg.icon} {cfg.label}
+                  <span className="ml-1 opacity-60 font-normal">{range}</span>
+                </button>
+              );
+            })}
+          </div>
+          <span className="font-mono text-neutral-400 text-sm tabular-nums">{clock}</span>
+        </div>
       </header>
 
       <div className="flex flex-1 overflow-hidden gap-0 divide-x divide-neutral-800">

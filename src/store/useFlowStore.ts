@@ -13,7 +13,7 @@ export type FlowStatus =
 
 export type OrderType = "local" | "delivery" | "takeaway";
 export type FlowPlatform = "proprio" | "ifood" | "rappi" | "anota_ai" | "whatsapp";
-export type FlowPayment = "cash" | "card" | "pix";
+export type FlowPayment = "cash" | "card" | "pix" | "card_delivery";
 
 export interface FlowItem {
   productId: string;
@@ -27,9 +27,15 @@ export interface FlowMotoboy {
   id: string;
   name: string;
   phone: string;
-  vehicle: string;
+  vehicle: string;      // tipo: Moto, Bicicleta, Carro, Van
+  vehicleModel: string; // ex: Honda CG 160
   plate: string;
   avatar: string;
+  source: "proprio" | "app";
+  pin: string;          // 4 dígitos — definido pelo gerente
+  cnhPhoto?: string;    // base64 da foto da CNH
+  facePhoto?: string;   // base64 da foto de reconhecimento facial
+  onboarded?: boolean;  // true após o motoboy completar o cadastro na primeira sessão
 }
 
 export interface FlowEvent {
@@ -55,14 +61,15 @@ export interface FlowOrder {
   status: FlowStatus;
   timeline: FlowEvent[];
   motoboy?: FlowMotoboy;
+  deliveryCode: string;   // 4-digit code customer shows to motoboy
   createdAt: Date;
   closedAt?: Date;
 }
 
 const motoboys: FlowMotoboy[] = [
-  { id: "m1", name: "Carlos Silva",  phone: "(11) 99999-1111", vehicle: "Moto",      plate: "ABC-1234", avatar: "CS" },
-  { id: "m2", name: "Rafael Lima",   phone: "(11) 99999-2222", vehicle: "Moto",      plate: "DEF-5678", avatar: "RL" },
-  { id: "m3", name: "Bruno Costa",   phone: "(11) 99999-3333", vehicle: "Bicicleta", plate: "—",        avatar: "BC" },
+  { id: "m1", name: "Carlos Silva",  phone: "(11) 99999-1111", vehicle: "Moto",      vehicleModel: "Honda CG 160",   plate: "ABC-1234", avatar: "CS", source: "proprio", pin: "1111" },
+  { id: "m2", name: "Rafael Lima",   phone: "(11) 99999-2222", vehicle: "Moto",      vehicleModel: "Yamaha Factor",  plate: "DEF-5678", avatar: "RL", source: "proprio", pin: "2222" },
+  { id: "m3", name: "Bruno Costa",   phone: "(11) 99999-3333", vehicle: "Bicicleta", vehicleModel: "Caloi 10",       plate: "—",        avatar: "BC", source: "proprio", pin: "3333" },
 ];
 
 // ---- mock seed orders ----
@@ -82,7 +89,7 @@ const seedOrders: FlowOrder[] = [
     ],
     total: 76.8, discount: 0, paymentMethod: "pix", status: "on_the_way", motoboy: motoboys[0],
     timeline: [ev("pending",32), ev("preparing",30), ev("ready",14), ev("picked_up",11), ev("on_the_way",11)],
-    createdAt: d(32),
+    deliveryCode: "3847", createdAt: d(32),
   },
   {
     id: "f2", number: 41, type: "delivery", platform: "rappi", customer: "Pedro Rocha",
@@ -93,7 +100,7 @@ const seedOrders: FlowOrder[] = [
     ],
     total: 85.8, discount: 0, paymentMethod: "card", status: "preparing",
     timeline: [ev("pending",18), ev("preparing",16)],
-    createdAt: d(18),
+    deliveryCode: "6192", createdAt: d(18),
   },
   {
     id: "f3", number: 40, type: "local", platform: "proprio", customer: "Mesa 05", table: "Mesa 05",
@@ -103,7 +110,7 @@ const seedOrders: FlowOrder[] = [
     ],
     total: 70.7, discount: 0, paymentMethod: "cash", status: "ready",
     timeline: [ev("pending",28), ev("preparing",25), ev("ready",5)],
-    createdAt: d(28),
+    deliveryCode: "5034", createdAt: d(28),
   },
   {
     id: "f4", number: 39, type: "delivery", platform: "whatsapp", customer: "Marcos Oliveira",
@@ -114,14 +121,14 @@ const seedOrders: FlowOrder[] = [
     ],
     total: 116.5, discount: 0, paymentMethod: "pix", status: "delivered", motoboy: motoboys[0],
     timeline: [ev("pending",65), ev("preparing",62), ev("ready",45), ev("picked_up",42), ev("on_the_way",42), ev("delivered",18)],
-    createdAt: d(65), closedAt: d(18),
+    deliveryCode: "7261", createdAt: d(65), closedAt: d(18),
   },
   {
     id: "f5", number: 38, type: "local", platform: "proprio", customer: "Mesa 02", table: "Mesa 02",
     items: [{ productId: "4", name: "Pizza Margherita", quantity: 2, price: 45.0 }],
     total: 90.0, discount: 0, paymentMethod: "card", status: "delivered",
     timeline: [ev("pending",80), ev("preparing",77), ev("ready",55), ev("delivered",40)],
-    createdAt: d(80), closedAt: d(40),
+    deliveryCode: "4418", createdAt: d(80), closedAt: d(40),
   },
   {
     id: "f6", number: 37, type: "takeaway", platform: "anota_ai", customer: "Juliana Ferreira",
@@ -132,14 +139,14 @@ const seedOrders: FlowOrder[] = [
     ],
     total: 38.9, discount: 0, paymentMethod: "pix", status: "delivered",
     timeline: [ev("pending",95), ev("preparing",93), ev("ready",75), ev("delivered",60)],
-    createdAt: d(95), closedAt: d(60),
+    deliveryCode: "9023", createdAt: d(95), closedAt: d(60),
   },
   {
     id: "f7", number: 36, type: "local", platform: "proprio", customer: "Mesa 08", table: "Mesa 08",
     items: [{ productId: "5", name: "Pizza Pepperoni", quantity: 1, price: 52.0 }],
     total: 52.0, discount: 0, paymentMethod: "cash", status: "cancelled",
     timeline: [ev("pending",110), ev("cancelled",100)],
-    createdAt: d(110), closedAt: d(100),
+    deliveryCode: "1155", createdAt: d(110), closedAt: d(100),
   },
   {
     id: "f8", number: 35, type: "local", platform: "proprio", customer: "Mesa 03", table: "Mesa 03",
@@ -149,7 +156,7 @@ const seedOrders: FlowOrder[] = [
     ],
     total: 54.7, discount: 0, paymentMethod: "cash", status: "pending",
     timeline: [ev("pending",3)],
-    createdAt: d(3),
+    deliveryCode: "2978", createdAt: d(3),
   },
 ];
 
@@ -161,7 +168,7 @@ interface FlowStore {
   availableMotoboys: Set<string>;
 
   // PDV → cria novo pedido
-  createOrder: (data: Omit<FlowOrder, "id" | "number" | "status" | "timeline" | "createdAt">) => string;
+  createOrder: (data: Omit<FlowOrder, "id" | "number" | "status" | "timeline" | "createdAt" | "deliveryCode">) => string;
 
   // KDS
   startPreparing: (id: string) => void;
@@ -172,7 +179,16 @@ interface FlowStore {
   advanceDelivery: (id: string) => void;
 
   // Hub
-  cancelOrder: (id: string) => void;
+  cancelOrder:    (id: string) => void;
+  markDelivered:  (id: string) => void;
+
+  // Gerenciamento de motoboys (gerente/admin)
+  addMotoboy:    (data: Omit<FlowMotoboy, "id" | "avatar">) => void;
+  updateMotoboy: (id: string, data: Partial<Omit<FlowMotoboy, "id">>) => void;
+  removeMotoboy: (id: string) => void;
+
+  // Dev / admin
+  resetOrders: () => void;
 }
 
 const deliveryFlow: FlowStatus[] = ["ready", "picked_up", "on_the_way", "delivered"];
@@ -185,12 +201,14 @@ export const useFlowStore = create<FlowStore>()(persist((set, get) => ({
   createOrder: (data) => {
     _counter += 1;
     const id = `f${Date.now()}`;
+    const deliveryCode = String(Math.floor(1000 + Math.random() * 9000));
     const order: FlowOrder = {
       ...data,
       id,
       number: _counter,
       status: "pending",
       timeline: [{ status: "pending", timestamp: new Date() }],
+      deliveryCode,
       createdAt: new Date(),
     };
     set({ orders: [order, ...get().orders] });
@@ -260,18 +278,62 @@ export const useFlowStore = create<FlowStore>()(persist((set, get) => ({
           : o
       ),
     }),
+
+  markDelivered: (id) =>
+    set({
+      orders: get().orders.map((o) =>
+        o.id === id
+          ? { ...o, status: "delivered", closedAt: new Date(), timeline: [...o.timeline, { status: "delivered", timestamp: new Date() }] }
+          : o
+      ),
+    }),
+
+  addMotoboy: (data) => {
+    const initials = data.name.trim().split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+    const newMotoboy: FlowMotoboy = {
+      ...data,
+      id: `m${Date.now()}`,
+      avatar: initials,
+    };
+    set({ motoboys: [...get().motoboys, newMotoboy] });
+  },
+
+  updateMotoboy: (id, data) =>
+    set({
+      motoboys: get().motoboys.map((m) => m.id === id ? { ...m, ...data } : m),
+    }),
+
+  removeMotoboy: (id) => {
+    const av = new Set(get().availableMotoboys);
+    av.delete(id);
+    set({
+      motoboys: get().motoboys.filter((m) => m.id !== id),
+      availableMotoboys: av,
+    });
+  },
+
+  resetOrders: () => {
+    _counter = 30;
+    set({ orders: [], availableMotoboys: new Set(["m1", "m2", "m3"]) });
+  },
 }), {
   name: "foodflow-orders",
   storage: makePersistStorage<FlowStore>(),
   partialize: (state) => ({
     orders: state.orders,
+    motoboys: state.motoboys,
     availableMotoboys: Array.from(state.availableMotoboys) as unknown as Set<string>,
   }),
   merge: (persisted, current) => {
-    const p = persisted as { orders: FlowOrder[]; availableMotoboys: string[] };
+    const p = persisted as { orders: FlowOrder[]; motoboys: FlowMotoboy[]; availableMotoboys: string[] };
+    const orders = p.orders ?? current.orders;
+    if (orders.length > 0) {
+      _counter = Math.max(_counter, ...orders.map((o) => o.number));
+    }
     return {
       ...current,
-      orders: p.orders ?? current.orders,
+      orders,
+      motoboys: p.motoboys ?? current.motoboys,
       availableMotoboys: new Set<string>(p.availableMotoboys ?? []),
     };
   },

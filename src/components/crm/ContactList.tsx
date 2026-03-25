@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useCRMStore, CustomerTag, AddressType } from "@/store/useCRMStore";
+import { useCepLookup } from "@/hooks/useCepLookup";
 
 const tagConfig: Record<CustomerTag, { label: string; color: string }> = {
   vip:        { label: "VIP",       color: "text-yellow-400 bg-yellow-400/10 border-yellow-400/30" },
@@ -29,6 +30,13 @@ function NewCustomerModal({ onClose }: { onClose: () => void }) {
   const [number, setNumber]       = useState("");
   const [type, setType]           = useState<AddressType>("casa");
   const [complement, setComplement] = useState("");
+
+  const cepLookup = useCepLookup({
+    onFill: (d) => {
+      if (d.logradouro) setStreet(d.logradouro);
+      if (d.bairro)     setNeighborhood(d.bairro);
+    },
+  });
 
   function handleSave() {
     if (!name.trim() || !phone.trim()) return;
@@ -67,6 +75,35 @@ function NewCustomerModal({ onClose }: { onClose: () => void }) {
 
           {/* Endereço */}
           <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider pt-1">Endereço</p>
+
+          {/* CEP */}
+          <div className="relative">
+            <input
+              value={cepLookup.formatted}
+              onChange={(e) => cepLookup.handleChange(e.target.value)}
+              placeholder="CEP (preenchimento automático)"
+              inputMode="numeric"
+              maxLength={9}
+              className={`w-full bg-neutral-700 border rounded-xl px-3 py-2.5 text-sm text-white placeholder-neutral-500 outline-none focus:border-brand-primary/60 pr-8 ${
+                cepLookup.error ? "border-red-500/60" : "border-neutral-600"
+              }`}
+            />
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs">
+              {cepLookup.loading ? (
+                <span className="animate-spin inline-block text-neutral-400">⟳</span>
+              ) : cepLookup.error ? (
+                <span className="text-red-400">✕</span>
+              ) : cepLookup.cep.length === 8 ? (
+                <span className="text-green-400">✓</span>
+              ) : (
+                <span className="text-neutral-500">📮</span>
+              )}
+            </span>
+          </div>
+          {cepLookup.error && (
+            <p className="text-xs text-red-400 -mt-1">CEP não encontrado</p>
+          )}
+
           <input value={street} onChange={(e) => setStreet(e.target.value)}
             placeholder="Rua, logradouro"
             className="w-full bg-neutral-700 border border-neutral-600 rounded-xl px-3 py-2.5 text-sm text-white placeholder-neutral-500 outline-none focus:border-brand-primary/60"

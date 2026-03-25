@@ -5,15 +5,17 @@ import { FlowOrder, useFlowStore } from "@/store/useFlowStore";
 import { toast as notify } from "@/store/useToastStore";
 import KDSTimer from "./KDSTimer";
 import WhatsAppToast from "./WhatsAppToast";
+import { PlatformBadge } from "@/components/shared/PlatformBadge";
 
 const typeLabel: Record<string, string> = {
-  local: "🪑", delivery: "🏍️", takeaway: "🥡",
+  local: "🪑", delivery: "🛵", takeaway: "🥡",
 };
 
 export default function KDSOrderCard({ order }: { order: FlowOrder }) {
-  const startPreparing = useFlowStore((s) => s.startPreparing);
-  const markReady      = useFlowStore((s) => s.markReady);
+  const startPreparing  = useFlowStore((s) => s.startPreparing);
+  const markReady       = useFlowStore((s) => s.markReady);
   const advanceDelivery = useFlowStore((s) => s.advanceDelivery);
+  const markDelivered   = useFlowStore((s) => s.markDelivered);
 
   const [toast, setToast] = useState<{ customer: string; message: string } | null>(null);
   const [minutesReady, setMinutesReady] = useState(0);
@@ -88,11 +90,12 @@ export default function KDSOrderCard({ order }: { order: FlowOrder }) {
       <div className={`bg-neutral-800 border ${borderColor} rounded-2xl overflow-hidden flex flex-col shadow-card animate-fade-in`}>
         {/* Header */}
         <div className={`${headerBg} px-4 py-3 flex items-center justify-between`}>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className={`text-xl font-black ${numberColor}`}>#{order.number}</span>
             <span className="text-sm text-neutral-400 font-medium">
               {typeLabel[order.type]} {order.table ?? order.customer}
             </span>
+            <PlatformBadge platform={order.platform} />
           </div>
           <KDSTimer
             since={timerSince}
@@ -152,9 +155,16 @@ export default function KDSOrderCard({ order }: { order: FlowOrder }) {
 
           {order.status === "ready" && order.type !== "delivery" && (
             <div className="space-y-2">
-              <div className="w-full py-2.5 text-center text-green-400 text-sm font-medium">
+              <div className="w-full py-2 text-center text-green-400 text-xs font-medium">
                 {order.type === "takeaway" ? "⏳ Aguardando retirada" : "⏳ Aguardando cliente"}
               </div>
+
+              <button
+                onClick={() => { markDelivered(order.id); notify.success(`#${order.number} entregue!`, order.customer); }}
+                className="w-full py-2.5 bg-green-600 hover:bg-green-500 text-white font-bold text-sm rounded-xl transition-colors active:scale-95"
+              >
+                ✓ Pedido Entregue
+              </button>
 
               {/* Botão de lembrete WhatsApp após 30min */}
               {order.phone && minutesReady >= 30 && (

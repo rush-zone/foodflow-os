@@ -6,23 +6,23 @@ import { useFlowStore } from "@/store/useFlowStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import { toast } from "@/store/useToastStore";
 
-const OPERATORS = ["Admin", "João", "Maria", "Carlos"];
-
 function fmt(v: number) {
   return v.toFixed(2).replace(".", ",");
 }
 
 // ─── Abertura ────────────────────────────────────────────────────────────────
 function AberturaCaixa() {
-  const open         = useCaixaStore((s) => s.open);
-  const loggedIn     = useAuthStore((s) => s.operator);
-  const [operator, setOperator] = useState(loggedIn ?? OPERATORS[0]);
-  const [balance, setBalance]   = useState("0,00");
+  const open     = useCaixaStore((s) => s.open);
+  const loggedIn = useAuthStore((s) => s.operator); // Operator | null
+  const [balance, setBalance] = useState("0,00");
+
+  // Caixa só é acessível a admin/gerente — loggedIn sempre presente aqui
+  const operatorName = loggedIn?.name ?? "";
 
   function handleOpen() {
     const val = parseFloat(balance.replace(",", ".")) || 0;
-    open(operator, val);
-    toast.success("Caixa aberto", `Operador: ${operator} · Fundo: R$ ${fmt(val)}`);
+    open(operatorName, val);
+    toast.success("Caixa aberto", `Operador: ${operatorName} · Fundo: R$ ${fmt(val)}`);
   }
 
   return (
@@ -32,39 +32,22 @@ function AberturaCaixa() {
           💰
         </div>
         <h2 className="text-xl font-black text-white">Abrir Caixa</h2>
-        <p className="text-sm text-neutral-500 mt-1">Informe o operador e o valor inicial em espécie</p>
+        <p className="text-sm text-neutral-500 mt-1">Informe o valor inicial em espécie</p>
       </div>
 
       <div className="w-full max-w-sm space-y-4">
+        {/* Operador logado */}
         <div>
           <p className="text-xs text-neutral-500 mb-2 font-medium">Operador</p>
-          {loggedIn ? (
-            <div className="flex items-center gap-3 px-4 py-3 bg-brand-primary/10 border border-brand-primary/30 rounded-xl">
-              <div className="w-8 h-8 rounded-full bg-orange-500/20 border border-orange-500/40 flex items-center justify-center text-xs font-bold text-orange-400">
-                {loggedIn.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-white">{loggedIn}</p>
-                <p className="text-xs text-neutral-500">operador logado</p>
-              </div>
+          <div className="flex items-center gap-3 px-4 py-3 bg-brand-primary/10 border border-brand-primary/30 rounded-xl">
+            <div className="w-8 h-8 rounded-full bg-brand-primary/20 border border-brand-primary/40 flex items-center justify-center text-xs font-bold text-brand-primary">
+              {loggedIn?.avatar ?? "??"}
             </div>
-          ) : (
-          <div className="grid grid-cols-2 gap-2">
-            {OPERATORS.map((op) => (
-              <button
-                key={op}
-                onClick={() => setOperator(op)}
-                className={`py-2.5 rounded-xl text-sm font-medium border transition-all ${
-                  operator === op
-                    ? "bg-brand-primary/10 border-brand-primary text-brand-primary"
-                    : "bg-neutral-800 border-neutral-700 text-neutral-400 hover:border-neutral-600"
-                }`}
-              >
-                {op}
-              </button>
-            ))}
+            <div>
+              <p className="text-sm font-semibold text-white">{operatorName}</p>
+              <p className="text-xs text-neutral-500">operador logado</p>
+            </div>
           </div>
-          )}
         </div>
 
         <div>

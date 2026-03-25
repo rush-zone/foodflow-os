@@ -52,6 +52,10 @@ export interface AppConfig {
     freeAbove: number;       // frete grátis acima de R$
     estimatedMinutes: number;
     radiusKm: number;
+    flowMinutes: {
+      normal: { min: number; max: number }; // ex: 30–60 min
+      alto:   { min: number; max: number }; // ex: 60–120 min
+    };
   };
   operation: {
     serviceChargePct: number; // % taxa de serviço (0 = desabilitado)
@@ -77,6 +81,10 @@ const defaults: AppConfig = {
     freeAbove: 80,
     estimatedMinutes: 45,
     radiusKm: 5,
+    flowMinutes: {
+      normal: { min: 30, max: 60 },
+      alto:   { min: 60, max: 120 },
+    },
   },
   operation: {
     serviceChargePct: 0,

@@ -20,10 +20,24 @@ export interface StockItem {
   lastUpdated: Date;
 }
 
+export interface RestockRecord {
+  id:        string;
+  itemId:    string;
+  itemName:  string;
+  supplier:  string;
+  qty:       number;
+  unit:      string;
+  unitCost:  number;
+  totalCost: number;
+  date:      Date;
+}
+
 interface EstoqueStore {
   items: StockItem[];
-  adjust: (id: string, delta: number) => void;
-  restock: (id: string) => void;
+  restockHistory: RestockRecord[];
+
+  adjust:  (id: string, delta: number) => void;
+  restock: (id: string) => RestockRecord | null; // retorna registro com custo para exibição
   addItem: (data: Omit<StockItem, "id" | "lastUpdated">) => void;
   deductForSale: (sold: Array<{
     stockLinks?: StockLink[];
@@ -59,10 +73,13 @@ const mockItems: StockItem[] = [
   { id: "s13", name: "Embalagem Delivery G",  category: "embalagens", unit: "un",  quantity: 18,  minQuantity: 30, idealQuantity: 150, cost: 0.80,  supplier: "Embalagens & Cia", lastUpdated: now },
   { id: "s14", name: "Sal",                   category: "temperos",   unit: "kg",  quantity: 5,   minQuantity: 2,  idealQuantity: 8,   cost: 2.5,   supplier: "Atacadão", lastUpdated: now },
   { id: "s15", name: "Cheddar Fatiado",       category: "carnes",     unit: "kg",  quantity: 2,   minQuantity: 3,  idealQuantity: 10,  cost: 45.0,  supplier: "Frigorífico ABC", lastUpdated: now },
+  { id: "s16", name: "Maionese da Casa",    category: "temperos",   unit: "kg",  quantity: 2,  minQuantity: 1,  idealQuantity: 5,  cost: 15.0,  supplier: "Atacadão",       lastUpdated: now },
+  { id: "s17", name: "Ketchup Especial",    category: "temperos",   unit: "kg",  quantity: 1,  minQuantity: 0.5,idealQuantity: 3,  cost: 12.0,  supplier: "Atacadão",       lastUpdated: now },
 ];
 
 export const useEstoqueStore = create<EstoqueStore>()(persist((set, get) => ({
   items: mockItems,
+  restockHistory: [],
 
   adjust: (id, delta) =>
     set({
@@ -73,14 +90,30 @@ export const useEstoqueStore = create<EstoqueStore>()(persist((set, get) => ({
       ),
     }),
 
-  restock: (id) =>
+  restock: (id) => {
+    const item = get().items.find((i) => i.id === id);
+    if (!item) return null;
+    const qty = Math.max(0, item.idealQuantity - item.quantity);
+    if (qty === 0) return null;
+    const record: RestockRecord = {
+      id:        `r${Date.now()}`,
+      itemId:    item.id,
+      itemName:  item.name,
+      supplier:  item.supplier,
+      qty,
+      unit:      item.unit,
+      unitCost:  item.cost,
+      totalCost: qty * item.cost,
+      date:      new Date(),
+    };
     set({
       items: get().items.map((i) =>
-        i.id === id
-          ? { ...i, quantity: i.idealQuantity, lastUpdated: new Date() }
-          : i
+        i.id === id ? { ...i, quantity: i.idealQuantity, lastUpdated: new Date() } : i
       ),
-    }),
+      restockHistory: [record, ...get().restockHistory],
+    });
+    return record;
+  },
 
   addItem: (data) =>
     set({
@@ -113,4 +146,15 @@ export const useEstoqueStore = create<EstoqueStore>()(persist((set, get) => ({
       }),
     });
   },
-}), { name: "foodflow-estoque", storage: makePersistStorage<EstoqueStore>() }));
+}), {
+  name: "foodflow-estoque",
+  storage: makePersistStorage<EstoqueStore>(),
+  merge: (persisted: unknown, current) => {
+    const p = persisted as Partial<EstoqueStore>;
+    return {
+      ...current,
+      ...(p ?? {}),
+      restockHistory: p?.restockHistory ?? [],
+    };
+  },
+}));

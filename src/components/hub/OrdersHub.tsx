@@ -5,27 +5,12 @@ import { useFlowStore, FlowStatus, FlowPlatform, OrderType } from "@/store/useFl
 import { toast } from "@/store/useToastStore";
 import HubStatusBadge from "./HubStatusBadge";
 import HubOrderDrawer from "./HubOrderDrawer";
+import { PlatformBadge, platformConfig } from "@/components/shared/PlatformBadge";
+import { HelmetIcon } from "@/components/shared/HelmetIcon";
 
 const typeIcon: Record<OrderType, string> = {
-  local: "🪑", delivery: "🏍️", takeaway: "🥡",
+  local: "🪑", delivery: "🛵", takeaway: "🥡",
 };
-
-const platformConfig: Record<FlowPlatform, { label: string; color: string; bg: string }> = {
-  proprio:  { label: "Próprio",  color: "text-brand-primary", bg: "bg-brand-primary/10 border-brand-primary/30" },
-  ifood:    { label: "iFood",    color: "text-red-400",        bg: "bg-red-400/10 border-red-400/30" },
-  rappi:    { label: "Rappi",    color: "text-orange-400",     bg: "bg-orange-400/10 border-orange-400/30" },
-  anota_ai: { label: "Anota AI", color: "text-blue-400",       bg: "bg-blue-400/10 border-blue-400/30" },
-  whatsapp: { label: "WhatsApp", color: "text-green-400",      bg: "bg-green-400/10 border-green-400/30" },
-};
-
-function PlatformBadge({ platform }: { platform: FlowPlatform }) {
-  const { label, color, bg } = platformConfig[platform];
-  return (
-    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${color} ${bg}`}>
-      {label}
-    </span>
-  );
-}
 
 const statusTabs: { value: FlowStatus | "all"; label: string }[] = [
   { value: "all",        label: "Todos" },
@@ -206,6 +191,7 @@ export default function OrdersHub() {
               <th className="px-4 py-3 font-medium">Total</th>
               <th className="px-4 py-3 font-medium">Pagamento</th>
               <th className="px-4 py-3 font-medium">Tempo</th>
+              <th className="px-4 py-3 font-medium">Motoboy</th>
               <th className="px-4 py-3 font-medium">Status</th>
               <th className="px-4 py-3 font-medium"></th>
             </tr>
@@ -230,6 +216,29 @@ export default function OrdersHub() {
                 <td className="px-4 py-3.5 font-bold text-neutral-100">R$ {order.total.toFixed(2).replace(".", ",")}</td>
                 <td className="px-4 py-3.5 text-neutral-400 text-xs">{paymentLabel[order.paymentMethod] ?? order.paymentMethod}</td>
                 <td className="px-4 py-3.5 text-neutral-500 text-xs tabular-nums">{elapsed(order.createdAt, order.closedAt)}</td>
+                <td className="px-4 py-3.5">
+                  {order.motoboy ? (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setSelectedId(order.id); }}
+                      title={`${order.motoboy.name} · ${order.motoboy.vehicle} · ${order.motoboy.source === "proprio" ? "Da loja" : "Do app"}`}
+                      className="flex items-center gap-1.5 group/mb"
+                    >
+                      <HelmetIcon className="w-4 h-4 text-brand-primary shrink-0" />
+                      <span className="text-xs text-neutral-400 group-hover/mb:text-white transition-colors max-w-[80px] truncate">
+                        {order.motoboy.name.split(" ")[0]}
+                      </span>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                        order.motoboy.source === "proprio"
+                          ? "bg-brand-primary/15 text-brand-primary"
+                          : "bg-neutral-700 text-neutral-400"
+                      }`}>
+                        {order.motoboy.source === "proprio" ? "loja" : "app"}
+                      </span>
+                    </button>
+                  ) : (
+                    <span className="text-neutral-700 text-xs">—</span>
+                  )}
+                </td>
                 <td className="px-4 py-3.5"><HubStatusBadge status={order.status} /></td>
                 <td className="px-4 py-3.5">
                   {!["delivered", "cancelled"].includes(order.status) && (

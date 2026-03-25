@@ -43,7 +43,6 @@ export default function LojaProductModal({ product, onClose }: Props) {
 
   function handleAdd() {
     if (cartItem) {
-      // product already in cart — update extras then qty
       updateExtras(product.id, selectedExtras);
       updateQty(product.id, qty);
     } else {
@@ -54,7 +53,6 @@ export default function LojaProductModal({ product, onClose }: Props) {
         image:     product.image,
         extras:    selectedExtras,
       });
-      // add() sets qty=1; if user picked more, adjust
       if (qty > 1) updateQty(product.id, qty);
     }
     onClose();
@@ -64,12 +62,12 @@ export default function LojaProductModal({ product, onClose }: Props) {
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm"
+        className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"
         onClick={onClose}
       />
 
       {/* Bottom sheet */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 max-h-[90vh] flex flex-col bg-neutral-900 rounded-t-3xl shadow-2xl overflow-hidden animate-slide-up-sheet">
+      <div className="fixed bottom-0 left-0 right-0 z-50 max-h-[90vh] flex flex-col bg-white rounded-t-3xl shadow-2xl overflow-hidden animate-slide-up-sheet">
 
         {/* Image */}
         {product.image ? (
@@ -79,20 +77,20 @@ export default function LojaProductModal({ product, onClose }: Props) {
               alt={product.name}
               className="w-full h-full object-cover"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-neutral-900/80 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-white/60 to-transparent" />
             <button
               onClick={onClose}
-              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-black/50 backdrop-blur text-white flex items-center justify-center text-sm hover:bg-black/70 transition-colors"
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/80 backdrop-blur border border-neutral-200 text-neutral-600 flex items-center justify-center text-sm hover:bg-white transition-colors shadow"
             >
               ✕
             </button>
           </div>
         ) : (
-          <div className="h-40 shrink-0 bg-neutral-800 flex items-center justify-center text-5xl relative">
+          <div className="h-40 shrink-0 bg-neutral-100 flex items-center justify-center text-5xl relative">
             🍽️
             <button
               onClick={onClose}
-              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-neutral-700 text-white flex items-center justify-center text-sm hover:bg-neutral-600 transition-colors"
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-neutral-200 border border-neutral-300 text-neutral-600 flex items-center justify-center text-sm hover:bg-neutral-300 transition-colors"
             >
               ✕
             </button>
@@ -105,9 +103,9 @@ export default function LojaProductModal({ product, onClose }: Props) {
             {/* Header */}
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1">
-                <h2 className="text-xl font-black text-white leading-tight">{product.name}</h2>
+                <h2 className="text-xl font-black text-neutral-900 leading-tight">{product.name}</h2>
                 {product.popular && (
-                  <span className="inline-block mt-1 text-[10px] bg-brand-primary/20 text-brand-primary px-2 py-0.5 rounded-full font-bold">
+                  <span className="inline-block mt-1 text-[10px] bg-brand-primary/15 text-brand-primary px-2 py-0.5 rounded-full font-bold">
                     Popular
                   </span>
                 )}
@@ -116,13 +114,13 @@ export default function LojaProductModal({ product, onClose }: Props) {
                 R$ {product.price.toFixed(2).replace(".", ",")}
               </span>
             </div>
-            <p className="text-sm text-neutral-400 mt-2 leading-relaxed">{product.description}</p>
+            <p className="text-sm text-neutral-500 mt-2 leading-relaxed">{product.description}</p>
           </div>
 
           {/* Extras */}
           {(product.extras ?? []).length > 0 && (
             <div className="px-5 pt-4 pb-2">
-              <h3 className="text-xs font-bold text-neutral-500 uppercase tracking-wider mb-3">
+              <h3 className="text-xs font-bold text-neutral-400 uppercase tracking-wider mb-3">
                 Adicionais
               </h3>
               <div className="space-y-2">
@@ -135,7 +133,7 @@ export default function LojaProductModal({ product, onClose }: Props) {
                       className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl border transition-all text-left ${
                         active
                           ? "border-brand-primary bg-brand-primary/10"
-                          : "border-neutral-700 bg-neutral-800 hover:border-neutral-600"
+                          : "border-neutral-200 bg-neutral-50 hover:border-neutral-300"
                       }`}
                     >
                       <div className="flex items-center gap-3">
@@ -143,7 +141,7 @@ export default function LojaProductModal({ product, onClose }: Props) {
                         <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${
                           active
                             ? "border-brand-primary bg-brand-primary"
-                            : "border-neutral-600"
+                            : "border-neutral-300"
                         }`}>
                           {active && (
                             <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
@@ -151,7 +149,7 @@ export default function LojaProductModal({ product, onClose }: Props) {
                             </svg>
                           )}
                         </span>
-                        <span className={`text-sm font-medium ${active ? "text-white" : "text-neutral-300"}`}>
+                        <span className={`text-sm font-medium ${active ? "text-brand-primary" : "text-neutral-700"}`}>
                           {extra.name}
                         </span>
                       </div>
@@ -169,20 +167,20 @@ export default function LojaProductModal({ product, onClose }: Props) {
         </div>
 
         {/* Sticky footer */}
-        <div className="px-5 py-4 border-t border-neutral-800 bg-neutral-900 shrink-0">
+        <div className="px-5 py-4 border-t border-neutral-200 bg-white shrink-0">
           <div className="flex items-center gap-4">
             {/* Qty stepper */}
-            <div className="flex items-center gap-3 bg-neutral-800 rounded-2xl px-3 py-2">
+            <div className="flex items-center gap-3 bg-neutral-100 border border-neutral-200 rounded-2xl px-3 py-2">
               <button
                 onClick={() => setQty((q) => Math.max(1, q - 1))}
-                className="w-7 h-7 rounded-full bg-neutral-700 hover:bg-neutral-600 text-white font-black flex items-center justify-center transition-colors"
+                className="w-7 h-7 rounded-full bg-neutral-200 hover:bg-neutral-300 text-neutral-700 font-black flex items-center justify-center transition-colors"
               >
                 −
               </button>
-              <span className="text-sm font-bold text-white w-5 text-center">{qty}</span>
+              <span className="text-sm font-bold text-neutral-900 w-5 text-center">{qty}</span>
               <button
                 onClick={() => setQty((q) => q + 1)}
-                className="w-7 h-7 rounded-full bg-neutral-700 hover:bg-neutral-600 text-white font-black flex items-center justify-center transition-colors"
+                className="w-7 h-7 rounded-full bg-neutral-200 hover:bg-neutral-300 text-neutral-700 font-black flex items-center justify-center transition-colors"
               >
                 +
               </button>

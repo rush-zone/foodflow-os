@@ -4,22 +4,22 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useFlowStore } from "@/store/useFlowStore";
 import { useCRMStore } from "@/store/useCRMStore";
-import { useAuthStore } from "@/store/useAuthStore";
+import { useAuthStore, ROLE_ROUTES, ROLE_LABEL } from "@/store/useAuthStore";
 import { useConfigStore, PLAN_LABELS } from "@/store/useConfigStore";
 
-const routes = [
-  { href: "/",           label: "PDV",      icon: "🖥️" },
-  { href: "/kds",        label: "Cozinha",  icon: "🍳" },
-  { href: "/delivery",   label: "Delivery", icon: "🏍️" },
-  { href: "/hub",        label: "Pedidos",  icon: "📋" },
-  { href: "/estoque",    label: "Estoque",  icon: "📦" },
-  { href: "/analytics",  label: "BI",       icon: "📊" },
-  { href: "/crm",        label: "CRM",      icon: "💬" },
-  { href: "/multiunit",  label: "Rede",     icon: "🏢" },
-  { href: "/cardapio",   label: "Cardápio", icon: "🍽️" },
-  { href: "/caixa",         label: "Caixa",    icon: "💰" },
-  { href: "/configuracoes", label: "Config",    icon: "⚙️" },
-  { href: "/loja",          label: "FlowStore", icon: "🛍️" },
+const ALL_ROUTES = [
+  { href: "/",             label: "PDV",       icon: "🖥️" },
+  { href: "/kds",          label: "Cozinha",   icon: "🍳" },
+  { href: "/delivery",     label: "Delivery",  icon: "🏍️" },
+  { href: "/hub",          label: "Pedidos",   icon: "📋" },
+  { href: "/estoque",      label: "Estoque",   icon: "📦" },
+  { href: "/analytics",    label: "BI",        icon: "📊" },
+  { href: "/crm",          label: "CRM",       icon: "💬" },
+  { href: "/multiunit",    label: "Rede",      icon: "🏢" },
+  { href: "/cardapio",     label: "Cardápio",  icon: "🍽️" },
+  { href: "/caixa",        label: "Caixa",     icon: "💰" },
+  { href: "/configuracoes",label: "Config",    icon: "⚙️" },
+  { href: "/loja",         label: "FlowStore", icon: "🛍️" },
 ];
 
 export default function AppNav() {
@@ -37,6 +37,10 @@ export default function AppNav() {
     "/kds": pendingKDS,
     "/crm": unreadCRM,
   };
+
+  // Filter routes by the current operator's role
+  const allowedHrefs = operator ? new Set(ROLE_ROUTES[operator.role]) : new Set<string>();
+  const routes = ALL_ROUTES.filter((r) => allowedHrefs.has(r.href));
 
   return (
     <nav className="flex items-center gap-1 px-4 border-b border-neutral-800 bg-neutral-900 shrink-0">
@@ -75,7 +79,7 @@ export default function AppNav() {
         );
       })}
 
-      {/* Spacer + operator */}
+      {/* Spacer + operator info */}
       <div className="ml-auto flex items-center gap-2 pl-4 border-l border-neutral-800">
         <span className={`hidden md:inline text-[10px] font-bold px-2 py-0.5 rounded-full ${
           plan === "enterprise" ? "bg-purple-500/20 text-purple-400" :
@@ -85,10 +89,12 @@ export default function AppNav() {
         }`}>
           {PLAN_LABELS[plan]}
         </span>
-        <div className="hidden md:flex flex-col items-end">
-          <span className="text-xs font-medium text-white leading-none">{operator}</span>
-          <span className="text-[10px] text-neutral-500">operador</span>
-        </div>
+        {operator && (
+          <div className="hidden md:flex flex-col items-end">
+            <span className="text-xs font-medium text-white leading-none">{operator.name}</span>
+            <span className="text-[10px] text-neutral-500">{ROLE_LABEL[operator.role]}</span>
+          </div>
+        )}
         <button
           onClick={logout}
           title="Sair"

@@ -9,18 +9,22 @@ export default function MotoboyLogin() {
   const loginAs = useMotoboysAuthStore((s) => s.loginAs);
   const [selected, setSelected] = useState<FlowMotoboy | null>(null);
   const [pin, setPin] = useState("");
+  const [pinError, setPinError] = useState(false);
 
   function handleDigit(d: string) {
     if (pin.length >= 4) return;
     const next = pin + d;
     setPin(next);
+    setPinError(false);
     if (next.length === 4) {
       setTimeout(() => {
-        if (selected) {
+        if (selected && next === selected.pin) {
           loginAs(selected);
           if ("Notification" in window) Notification.requestPermission();
+        } else {
+          setPinError(true);
+          setPin("");
         }
-        setPin("");
       }, 300);
     }
   }
@@ -72,16 +76,23 @@ export default function MotoboyLogin() {
       <p className="text-xs text-neutral-500 mt-1 mb-8">Digite seu PIN de 4 dígitos</p>
 
       {/* PIN dots */}
-      <div className="flex gap-4 mb-10">
+      <div className="flex gap-4 mb-3">
         {[0, 1, 2, 3].map((i) => (
           <div
             key={i}
             className={`w-3.5 h-3.5 rounded-full transition-all duration-150 ${
-              i < pin.length ? "bg-orange-500 scale-110" : "bg-neutral-700"
+              pinError
+                ? "bg-red-500"
+                : i < pin.length
+                ? "bg-orange-500 scale-110"
+                : "bg-neutral-700"
             }`}
           />
         ))}
       </div>
+      <p className={`text-xs mb-7 h-4 transition-opacity ${pinError ? "text-red-400 opacity-100" : "opacity-0"}`}>
+        PIN incorreto. Tente novamente.
+      </p>
 
       {/* Numpad */}
       <div className="grid grid-cols-3 gap-3 w-64">
@@ -105,7 +116,7 @@ export default function MotoboyLogin() {
         ))}
       </div>
 
-      <p className="text-xs text-neutral-700 mt-8">Qualquer PIN de 4 dígitos funciona neste demo</p>
+      <p className="text-xs text-neutral-700 mt-8">PIN definido pelo gerente no cadastro</p>
     </div>
   );
 }

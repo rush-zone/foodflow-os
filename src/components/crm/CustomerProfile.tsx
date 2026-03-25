@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useCRMStore, CustomerTag, AddressType } from "@/store/useCRMStore";
+import { useCepLookup } from "@/hooks/useCepLookup";
 import { useFlowStore, FlowStatus } from "@/store/useFlowStore";
 import { toast } from "@/store/useToastStore";
 
@@ -57,6 +58,13 @@ export default function CustomerProfile() {
   const [addrNumber, setAddrNumber]       = useState("");
   const [addrType, setAddrType]           = useState<AddressType>("casa");
   const [addrComplement, setAddrComplement] = useState("");
+
+  const cepLookup = useCepLookup({
+    onFill: (d) => {
+      if (d.logradouro) setAddrStreet(d.logradouro);
+      if (d.bairro)     setAddrNeighborhood(d.bairro);
+    },
+  });
 
   if (!customer) {
     return (
@@ -170,6 +178,34 @@ export default function CustomerProfile() {
 
           {editingAddress ? (
             <div className="space-y-2">
+              {/* CEP lookup */}
+              <div className="relative">
+                <input
+                  value={cepLookup.formatted}
+                  onChange={(e) => cepLookup.handleChange(e.target.value)}
+                  placeholder="CEP (preenchimento automático)"
+                  inputMode="numeric"
+                  maxLength={9}
+                  className={`w-full bg-neutral-800 border rounded-xl px-3 py-2 text-xs text-white placeholder-neutral-500 outline-none focus:border-brand-primary/50 pr-7 ${
+                    cepLookup.error ? "border-red-500/60" : "border-neutral-700"
+                  }`}
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs">
+                  {cepLookup.loading ? (
+                    <span className="animate-spin inline-block text-neutral-400">⟳</span>
+                  ) : cepLookup.error ? (
+                    <span className="text-red-400">✕</span>
+                  ) : cepLookup.cep.length === 8 ? (
+                    <span className="text-green-400">✓</span>
+                  ) : (
+                    <span className="text-neutral-500">📮</span>
+                  )}
+                </span>
+              </div>
+              {cepLookup.error && (
+                <p className="text-xs text-red-400 -mt-1">CEP não encontrado</p>
+              )}
+
               <input
                 value={addrStreet}
                 onChange={(e) => setAddrStreet(e.target.value)}
