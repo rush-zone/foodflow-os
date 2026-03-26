@@ -10,7 +10,11 @@
       "Bash(npm install:*)",
       "Bash(gh repo:*)",
       "Bash(git --version)",
-      "Bash(where gh:*)"
+      "Bash(where gh:*)",
+      "Bash(npx tsc:*)",
+      "Bash(find d:/sistemas_2026/FoodDelivery/src -name Configura* -o -name configura*)",
+      "Bash(git add:*)",
+      "Bash(git push:*)"
     ]
   }
 }

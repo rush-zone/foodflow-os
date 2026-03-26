@@ -24,7 +24,7 @@ export const ROLE_ROUTES: Record<OperatorRole, string[]> = {
   admin:     ["/", "/kds", "/delivery", "/hub", "/estoque", "/analytics", "/crm", "/multiunit", "/cardapio", "/caixa", "/configuracoes", "/loja"],
   gerente:   ["/", "/kds", "/delivery", "/hub", "/estoque", "/analytics", "/crm", "/multiunit", "/cardapio", "/caixa", "/configuracoes", "/loja"],
   atendente: ["/", "/kds", "/delivery", "/hub", "/estoque", "/crm", "/cardapio", "/loja"],
-  caixa:     ["/", "/kds", "/delivery", "/hub", "/estoque", "/crm", "/cardapio", "/loja"],
+  caixa:     ["/", "/kds", "/delivery", "/hub", "/estoque", "/crm", "/cardapio", "/caixa", "/loja"],
   cozinha:   ["/kds"],
 };
 
