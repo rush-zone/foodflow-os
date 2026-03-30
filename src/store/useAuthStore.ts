@@ -53,17 +53,25 @@ export const SYSTEM_OPERATORS: Operator[] = [
 
 interface AuthStore {
   operator: Operator | null;
+  _hasHydrated: boolean;
   login: (operator: Operator) => void;
   logout: () => void;
+  _setHydrated: () => void;
 }
 
 export const useAuthStore = create<AuthStore>()(
   persist(
     (set) => ({
       operator: null,
+      _hasHydrated: false,
       login:  (operator) => set({ operator }),
       logout: () => set({ operator: null }),
+      _setHydrated: () => set({ _hasHydrated: true }),
     }),
-    { name: "foodflow-auth-v2", storage: makePersistStorage<AuthStore>() }
+    {
+      name: "foodflow-auth-v2",
+      storage: makePersistStorage<AuthStore>(),
+      onRehydrateStorage: () => (state) => { state?._setHydrated(); },
+    }
   )
 );

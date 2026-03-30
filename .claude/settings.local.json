@@ -14,7 +14,29 @@
       "Bash(npx tsc:*)",
       "Bash(find d:/sistemas_2026/FoodDelivery/src -name Configura* -o -name configura*)",
       "Bash(git add:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(npx next:*)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(d.get\\(''''scripts'''',{}\\)\\)\")",
+      "Bash(node -e \"const d=require\\(''./package.json''\\); console.log\\(JSON.stringify\\(d.scripts,null,2\\)\\)\")",
+      "Bash(ls d:/sistemas_2026/FoodDelivery/next.config* d:/sistemas_2026/FoodDelivery/src/app/layout.tsx)",
+      "Bash(netsh advfirewall:*)",
+      "Bash(netstat -ano)",
+      "Bash(findstr \":3000\")",
+      "Bash(findstr \"LISTENING\")",
+      "Bash(taskkill /PID 27892 /F)",
+      "Bash(cmd /c \"taskkill /PID 27892 /F\")",
+      "Bash(cmd /c \"taskkill /PID 27892 /F 2>&1\")",
+      "Bash(powershell -Command \"Stop-Process -Id 27892 -Force -ErrorAction SilentlyContinue; Start-Sleep 1; \\(Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue\\).OwningProcess\")",
+      "Bash(powershell -Command \"Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue | Select-Object LocalAddress,LocalPort,State\")",
+      "Bash(powershell -Command \"Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_IPAddress -notlike ''127.*'' -and $_IPAddress -notlike ''169.*'' } | Select-Object IPAddress, InterfaceAlias\")",
+      "Bash(powershell -Command \"ipconfig\")",
+      "Bash(powershell -Command \"Get-NetTCPConnection -LocalPort 3000 -State Listen -ErrorAction SilentlyContinue | Select-Object LocalAddress,State\")",
+      "Bash(powershell -Command \"Get-NetFirewallRule -DisplayName ''Next.js 3000'' -ErrorAction SilentlyContinue | Select-Object DisplayName,Enabled,Direction,Action\")",
+      "Bash(taskkill /PID 26344 /F)",
+      "Bash(cmd /c \"taskkill /PID 26344 /F\")",
+      "Bash(cmd /c \"taskkill /PID 26344 /F 2>&1\")",
+      "Bash(powershell -Command \"Stop-Process -Id 26344 -Force; Write-Output ''Done''\")",
+      "Bash(powershell -Command \"Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue | Select-Object State, LocalPort, OwningProcess\")"
     ]
   }
 }

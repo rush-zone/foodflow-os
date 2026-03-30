@@ -56,6 +56,8 @@ export default function LojaCheckout({ onBack, onConfirmed }: Props) {
   const [payment, setPayment]         = useState<FlowPayment>("pix");
   const [loading, setLoading]         = useState(false);
   const [submitted, setSubmitted]     = useState(false);
+  const [splitBill, setSplitBill]     = useState(false);
+  const [splitPeople, setSplitPeople] = useState(2);
 
   const [geoState, setGeoState]           = useState<GeoState>("idle");
   const [geoSuggestion, setGeoSuggestion] = useState<{ street: string; neighborhood: string } | null>(null);
@@ -155,6 +157,7 @@ export default function LojaCheckout({ onBack, onConfirmed }: Props) {
       : undefined;
 
     setTimeout(() => {
+      const perPerson = splitBill ? parseFloat((total / splitPeople).toFixed(2)) : undefined;
       const id = createOrder({
         type,
         platform:      "proprio",
@@ -163,6 +166,17 @@ export default function LojaCheckout({ onBack, onConfirmed }: Props) {
         address:       fullAddress,
         neighborhood:  type === "delivery" ? neighborhood.trim() : undefined,
         paymentMethod: payment,
+        splitBill: splitBill
+          ? {
+              people: splitPeople,
+              parts: Array.from({ length: splitPeople }, (_, i) => ({
+                amount: i === splitPeople - 1
+                  ? parseFloat((total - (perPerson! * (splitPeople - 1))).toFixed(2))
+                  : perPerson!,
+                method: payment === "cash" ? "cash" : "card",
+              })),
+            }
+          : undefined,
         items: items.map((i) => ({
           productId: i.productId,
           name:      i.name,
@@ -437,6 +451,55 @@ export default function LojaCheckout({ onBack, onConfirmed }: Props) {
               </button>
             ))}
           </div>
+        </section>
+
+        {/* ── Dividir conta ── */}
+        <section>
+          <button
+            onClick={() => { setSplitBill(!splitBill); setSplitPeople(2); }}
+            className={`w-full py-3 rounded-2xl border text-sm font-bold transition-all flex items-center justify-center gap-2 ${
+              splitBill
+                ? "bg-brand-primary/10 border-brand-primary text-brand-primary"
+                : "bg-white border-neutral-200 text-neutral-600 hover:border-neutral-300 shadow-sm"
+            }`}
+          >
+            <span>👥</span>
+            <span>{splitBill ? "Dividindo a conta ✓" : "Dividir conta com amigos"}</span>
+          </button>
+
+          {splitBill && (
+            <div className="mt-3 bg-neutral-50 border border-neutral-200 rounded-2xl p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-neutral-600">Quantas pessoas?</span>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setSplitPeople(Math.max(2, splitPeople - 1))}
+                    className="w-8 h-8 rounded-xl bg-neutral-200 hover:bg-neutral-300 text-neutral-700 font-bold text-lg flex items-center justify-center transition-colors"
+                  >−</button>
+                  <span className="font-black text-neutral-900 w-4 text-center">{splitPeople}</span>
+                  <button
+                    onClick={() => setSplitPeople(Math.min(8, splitPeople + 1))}
+                    className="w-8 h-8 rounded-xl bg-neutral-200 hover:bg-neutral-300 text-neutral-700 font-bold text-lg flex items-center justify-center transition-colors"
+                  >+</button>
+                </div>
+              </div>
+              <div className="border-t border-neutral-200 pt-3 space-y-1">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-neutral-600">Cada pessoa paga</span>
+                  <span className="font-black text-brand-primary text-base">
+                    R$ {(total / splitPeople).toFixed(2).replace(".", ",")}
+                  </span>
+                </div>
+                <div className="flex justify-between text-xs text-neutral-400">
+                  <span>Total do pedido</span>
+                  <span>R$ {total.toFixed(2).replace(".", ",")}</span>
+                </div>
+              </div>
+              <p className="text-xs text-neutral-400 bg-neutral-100 rounded-xl px-3 py-2">
+                💡 Combinem o pagamento entre vocês — cada um pode transferir via PIX ou pagar em dinheiro/débito na entrega.
+              </p>
+            </div>
+          )}
         </section>
 
         {/* ── Resumo ── */}

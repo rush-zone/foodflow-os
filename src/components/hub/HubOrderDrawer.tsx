@@ -9,7 +9,14 @@ import { HelmetIcon } from "@/components/shared/HelmetIcon";
 function printReceipt(order: FlowOrder) {
   const { restaurant, receipt } = useConfigStore.getState().config;
   const typeLabel = order.type === "delivery" ? "Delivery" : order.type === "takeaway" ? "Retirada" : `Mesa ${order.table ?? ""}`;
-  const payLabel  = order.paymentMethod === "cash" ? "Dinheiro" : order.paymentMethod === "pix" ? "PIX" : "Cartão";
+  const payLabel  = order.splitBill
+    ? `Conta dividida (${order.splitBill.people} pessoas)`
+    : order.paymentMethod === "cash" ? "Dinheiro" : order.paymentMethod === "pix" ? "PIX" : "Cartão";
+  const splitLines = order.splitBill
+    ? order.splitBill.parts.map((p, i) =>
+        `<tr><td>Pessoa ${i + 1} — ${p.method === "cash" ? "Dinheiro" : "Débito"}</td><td style="text-align:right">R$ ${p.amount.toFixed(2).replace(".", ",")}</td></tr>`
+      ).join("")
+    : "";
   const subtotal  = order.total + order.discount;
   const lines     = order.items
     .map((i) => `<tr><td>${i.quantity}× ${i.name}${i.notes ? `<br><small style="color:#888">⚠ ${i.notes}</small>` : ""}</td><td style="text-align:right">R$ ${(i.price * i.quantity).toFixed(2).replace(".",",")}</td></tr>`)
@@ -44,6 +51,7 @@ ${order.phone ? `<p>Fone: ${order.phone}</p>` : ""}
 ${order.discount > 0 ? `<table><tr><td>Subtotal</td><td style="text-align:right">R$ ${subtotal.toFixed(2).replace(".",",")}</td></tr><tr><td>Desconto</td><td style="text-align:right">− R$ ${order.discount.toFixed(2).replace(".",",")}</td></tr></table>` : ""}
 <table><tr><td class="total">TOTAL</td><td class="total" style="text-align:right">R$ ${order.total.toFixed(2).replace(".",",")}</td></tr></table>
 <p>Pagamento: ${payLabel}</p>
+${splitLines ? `<table style="margin-top:4px;font-size:12px;color:#555">${splitLines}</table>` : ""}
 <div class="divider"></div>
 <p>Criado: ${order.createdAt.toLocaleString("pt-BR")}</p>
 <p class="footer">${receipt.footer}</p>
@@ -70,9 +78,10 @@ const typeLabel: Record<string, string> = {
 };
 
 const paymentLabel: Record<string, string> = {
-  cash: "💵 Dinheiro",
-  pix: "⚡ PIX",
-  card: "💳 Cartão",
+  cash:         "💵 Dinheiro",
+  pix:          "⚡ PIX",
+  card:         "💳 Cartão",
+  card_delivery:"💳 Cobrar na entrega (maquininha)",
 };
 
 const timelineLabel: Record<FlowStatus, string> = {
@@ -244,7 +253,21 @@ export default function HubOrderDrawer({ order, onClose, onCancel }: Props) {
                 R$ {order.total.toFixed(2).replace(".", ",")}
               </span>
             </div>
-            <p className="text-xs text-neutral-500">{paymentLabel[order.paymentMethod] ?? order.paymentMethod}</p>
+            {order.splitBill ? (
+              <div className="mt-2 bg-neutral-800 rounded-xl p-3 space-y-1.5">
+                <p className="text-xs font-semibold text-neutral-400 flex items-center gap-1.5">
+                  <span>👥</span> Conta dividida em {order.splitBill.people} partes
+                </p>
+                {order.splitBill.parts.map((part, i) => (
+                  <div key={i} className="flex justify-between items-center text-xs">
+                    <span className="text-neutral-500">Pessoa {i + 1} — {part.method === "cash" ? "💵 Dinheiro" : "💳 Débito"}</span>
+                    <span className="font-bold text-neutral-200 tabular-nums">R$ {part.amount.toFixed(2).replace(".", ",")}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-neutral-500">{paymentLabel[order.paymentMethod] ?? order.paymentMethod}</p>
+            )}
           </section>
 
           {/* Timeline */}

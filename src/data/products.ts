@@ -190,7 +190,7 @@ export const products: Product[] = [
     name: "Milkshake",
     description: "Chocolate, morango ou baunilha — 400ml",
     price: 16.9,
-    image: "https://images.unsplash.com/photo-1541658016709-82835a7f7b37?w=400",
+    image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400",
     category: "desserts",
     popular: true,
     available: true,

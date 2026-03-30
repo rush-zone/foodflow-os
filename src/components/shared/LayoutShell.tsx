@@ -9,8 +9,9 @@ import LoginScreen from "@/components/auth/LoginScreen";
 export default function LayoutShell({ children }: { children: React.ReactNode }) {
   const pathname  = usePathname();
   const router    = useRouter();
-  const operator  = useAuthStore((s) => s.operator);
-  const logout    = useAuthStore((s) => s.logout);
+  const operator     = useAuthStore((s) => s.operator);
+  const hasHydrated  = useAuthStore((s) => s._hasHydrated);
+  const logout       = useAuthStore((s) => s.logout);
 
   const isPublic = pathname.startsWith("/motoboy") || pathname.startsWith("/loja");
   const role     = operator?.role;
@@ -24,6 +25,9 @@ export default function LayoutShell({ children }: { children: React.ReactNode })
 
   // ── Rotas públicas — sem nav e sem autenticação ──
   if (isPublic) return <>{children}</>;
+
+  // ── Aguarda hidratação do Zustand (evita flash de login no F5) ──
+  if (!hasHydrated) return null;
 
   // ── Sem operador → tela de login ──
   if (!operator || !role) return <LoginScreen />;

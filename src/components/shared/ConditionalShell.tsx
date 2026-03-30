@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import LayoutShell from "@/components/shared/LayoutShell";
 
 // Routes that are customer/public-facing — no operator auth, no AppNav
-const PUBLIC_PREFIXES = ["/loja", "/motoboy"];
+const PUBLIC_PREFIXES = ["/loja", "/motoboy", "/terminal"];
 
 export default function ConditionalShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

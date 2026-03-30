@@ -44,6 +44,11 @@ export interface FlowEvent {
   note?: string;
 }
 
+export interface SplitBillPart {
+  amount: number;
+  method: "cash" | "card";
+}
+
 export interface FlowOrder {
   id: string;
   number: number;
@@ -58,6 +63,7 @@ export interface FlowOrder {
   total: number;
   discount: number;
   paymentMethod: FlowPayment;
+  splitBill?: { people: number; parts: SplitBillPart[] };
   status: FlowStatus;
   timeline: FlowEvent[];
   motoboy?: FlowMotoboy;

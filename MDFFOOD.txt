@@ -1,0 +1,11 @@
+DeliveryFood Sistema
+
+Pelo sistema nós conseguimos gerir todo o processo de criação de nova conta do cliente + implementação.
+Por exemplo, quando nós fechamos um processo de de venda pro cliente, e o cliente me informa que o domínio dele é lanche.com.br, o sistema dele que será o nosso, automaticamente é auto hospedado em nossos servidores na hostinger, com o nosso subdomínio exemplo; deliveryfood.lojadocliente.com.br já instalando esse sistema que estamos desenvolvendo. 
+
+Ou seja, precisamos criar um MD, pro sistema do deliveryfood ADMIN CONTROLE. É nele que o suporte ira receber as notificações de chamadas de atendimento. É nele que iremos cadastrar o cliente. É por ele que iremos configurar o sistema do cliente. Enviar cobranças, escolha de planos, sistema de cobrança, banco de dados, créditos extra.
+
+
+Sistema para revenda dos vendedores. Acesso só para vendedores. Os vendedores irão poder acompanhar a lista de clientes ativos já vendidos e instalados, suas comissões futuras, seu prazo de renovação. Status de link ativo para envio de checagem do cliente.
+
+
